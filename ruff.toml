@@ -1,0 +1,48 @@
+# =============================================================================
+# General settings
+# =============================================================================
+
+line-length = 79
+target-version = "py313"
+exclude = [
+    "build",
+    ".venv",
+]
+
+# =============================================================================
+# Linting-specific settings
+# =============================================================================
+
+[lint]
+# Include Flake8's E and F rules, isort (I), pyupgrade (UP), and bugbear (B).
+select = ["E", "F", "I", "UP", "B", "C4", "G", "PERF", "RUF"]
+
+# Ignore E501 is "line too long", which is handled by the line-length setting
+ignore = [
+    "E501",
+]
+
+# =============================================================================
+# Formatting-specific settings
+# =============================================================================
+
+[format]
+
+# Use single quotes for strings
+quote-style = "single"
+
+# Use spaces for indentation
+indent-style = "space"
+
+# Ensure a trailing comma is added
+skip-magic-trailing-comma = false
+
+
+# =============================================================================
+# pydocstyle settings
+# =============================================================================
+
+[lint.pydocstyle]
+
+# Use Google-style docstrings
+convention = "google"
