@@ -4,6 +4,8 @@ from IPython.display import Math, display
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl
 
+from pyderivehelper.wlconfig import _FAILED_RESULT
+
 ws = WolframLanguageSession()
 
 
@@ -46,3 +48,11 @@ def wplot(filename, command):
     plt.imshow(img)
     plt.show()
     plt.axis('off')
+
+
+def check_syntax(expr):
+    valid_syntax_check_str = f'SyntaxQ["{expr}"]'
+    syntax_check_result = str(ws.evaluate(valid_syntax_check_str))
+    if syntax_check_result == _FAILED_RESULT:
+        return False
+    return True
