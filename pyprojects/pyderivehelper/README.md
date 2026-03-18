@@ -8,7 +8,7 @@ PyDerive is a lightweight wrapper to computational math and AI tools designed to
 
 ### Shell
 
-A bash or bash-like shell is recommended.
+A bash or bash-like shell is recommended. [`bash-git-prompt`](https://github.com/magicmonty/bash-git-prompt) is recommended for Windows. `bash-git-prompt` also ships with [`git`](https://git-scm.com/) by default.
 
 ### Wolfram Engine
 
@@ -21,6 +21,16 @@ wolframscript -code '$VersionNumber'
 ```
 
 If installing for the first time, the site will require setting up a license. The free license is sufficient for personal or prototype projects. Other licenses may be required for other use cases.
+
+### OpenAI
+
+An OpenAI account and token is required. A token can be obtained from [OpenAI](https://platform.openai.com/).
+
+1. Log in to the platform or create an account if needed.
+2. Generate an API key with **API Keys &rarr; Create new secret key**.
+3. Save the key obtained in a secure location.
+
+TODO: finish
 
 ## Installation
 
