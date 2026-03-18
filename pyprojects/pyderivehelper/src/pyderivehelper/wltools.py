@@ -1,12 +1,27 @@
+import os
+
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
 from IPython.display import Math, display
+from openai import OpenAI
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl
 
-from pyderivehelper.wlconfig import _FAILED_RESULT
+from pyderivehelper.config_openai import OpenAIModels
+from pyderivehelper.config_wl import _FAILED_RESULT
+from pyderivehelper.system_prompts import wolfram_code_generator
 
+# Load environment variables
+load_dotenv()
+
+# Start the Wolfram Language session
 ws = WolframLanguageSession()
+
+# Create the OpenAI client
+math_assistant_client = OpenAI(
+    api_key=os.environ['OPENAI_PERSONAL_MATH_ASSISTANT']
+)
 
 
 def print_tex(expr):
@@ -39,6 +54,31 @@ def wc(expr):
     ws.evaluate(save_expr_str)
     print_wresult(ws.evaluate('rrr'))
     return result
+
+
+def wnlp(prompt, model=OpenAIModels.mini):
+    prompt_template = f"""
+Convert the following description into a Wolfram Language expression.
+
+Description:
+{prompt}
+
+Wolfram Language:
+"""
+    response = math_assistant_client.responses.create(
+        model=model,
+        temperature=0,
+        input=[
+            {'role': 'system', 'content': wolfram_code_generator},
+            {
+                'role': 'user',
+                'content': prompt_template,
+            },
+        ],
+    )
+    response_str: str = response.output_text.strip()
+
+    return response_str
 
 
 def wplot(filename, command):
