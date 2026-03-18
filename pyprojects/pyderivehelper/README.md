@@ -24,13 +24,23 @@ If installing for the first time, the site will require setting up a license. Th
 
 ### OpenAI
 
-An OpenAI account and token is required. A token can be obtained from [OpenAI](https://platform.openai.com/).
+An OpenAI account and token is required. A token can be obtained from [OpenAI](https://platform.openai.com/). Log in to the platform or create an account if needed.
 
-1. Log in to the platform or create an account if needed.
-2. Generate an API key with **API Keys &rarr; Create new secret key**.
+Though it is not required, it is recommended to create a personal organization and personal project name.
+
+1. Go to **`Projects` &rarr; `+ Create`**
+2. Create a project called "Personal Math Assistant" (or something similar).
+
+Now add tokens.
+
+1. Go to **`Billing` &rarr; `Add to credit balance`**.
+2. Buy desired amount of tokens.
+
+Generate an API key.
+
+1. Generate an API key with **`API Keys` &rarr; `Create new secret key`**.
+2. Choose your token name and project.
 3. Save the key obtained in a secure location.
-
-TODO: finish
 
 ## Installation
 
