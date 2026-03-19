@@ -1,4 +1,5 @@
 import os
+import re
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -33,19 +34,19 @@ def print_tex(expr):
 
 
 def print_wexpr(expr):
-    """Prints a Wolfram Language expression in rendered TeX."""
+    """Prints a Wolfram expression in rendered TeX."""
     tex_expr = ws.evaluate(wl.ToString(wl.TeXForm(expr)))
     display(Math(tex_expr))
 
 
 def print_wresult(expr):
-    """Evaluates Wolfram Language expression and renders the result via TeX."""
+    """Evaluates Wolfram expression and renders the result via TeX."""
     tex_expr = ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
     display(Math(tex_expr))
 
 
 def print_wresult_tex(expr):
-    """Prints a Wolfram Language expression in raw TeX form."""
+    """Evaluates a Wolfram expression and print the result in raw TeX form."""
     tex_expr = ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
     print(tex_expr)
 
@@ -79,18 +80,26 @@ def wc(expr):
 def wnlp(prompt, model=OpenAIModels.mini):
     # Generate code
     print('Generating Wolfram Language code...')
-    response_str = evaluate_wolfram_language_from_prompt(model, prompt)
+    response_str = generate_wolfram_language(prompt, model)
     display(Markdown('\n**Wolfram Code**:\n'))
     display(Markdown(f'```wolfram\n{response_str}\n```'))
     # TODO: Check if the response is valid Wolfram Language code
 
     # TODO: Check if there is a plot and call plot if there is
 
-    # Evaluate the result and display in rendered TeX
-    display(Markdown('\n**Evaluated Result**:\n'))
-    result = wc(response_str)
+    # Evaluate the result and display
+    display(Markdown('\n**Raw Evaluated Result**:\n'))
+    result = ws.evaluate(response_str)
+    display(Markdown(f'```plaintext\n{result!s}\n```'))
 
-    # Render raw TeX for copy-pasting
+    # Render as Math
+    display(Markdown('\n**Rendered Evaluated Result**:\n'))
+    tex_str = ws.evaluate(wl.ToString(wl.TeXForm(result)))
+    # Fix the way Wolfram exports hypergeometric functions
+    tex_str = re.sub(r' _(\d+[A-Za-z])', r' {}_\1', tex_str)
+    display(Math(tex_str))
+
+    # Print raw TeX for copy-pasting
     display(Markdown('\n**Raw TeX**:\n'))
     tex_str = print_wresult_tex(result)
     display(Markdown(f'```tex\n{tex_str}\n```'))
@@ -98,7 +107,7 @@ def wnlp(prompt, model=OpenAIModels.mini):
     return result
 
 
-def evaluate_wolfram_language_from_prompt(model, prompt):
+def generate_wolfram_language(prompt, model):
     prompt_template = populate_wolfram_code_generator_prompt_template(prompt)
     response = math_assistant_client.responses.create(
         model=model,
