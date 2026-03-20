@@ -12,7 +12,10 @@ Strict requirements:
 - No comments.
 - No markdown.
 - No surrounding text.
+- When a substitution is requested, use ReplaceAll with the syntax expr /. var -> value.
 - Ensure the result can be evaluated directly in a Wolfram kernel.
+- Do as much with Wolfram Language as possible and avoid doing math in the
+  natural language stage of the pipeline.
 - Return exactly one valid Wolfram Language expression.
 """
 
@@ -24,8 +27,10 @@ errors and correct it. Pay special attention to errors that are syntactically
 correct but would cause other unexpected issues.
 
 Pay special attention to the following while sanitizing:
-- IMPORTANT: For any plotting expressions, ensure each expression to be plotted
-  is wrapped in an Evaluate@ call to ensure proper plotting.
+- IMPORTANT: For any plotting expressions, ensure each inner expression to be
+  plotted is wrapped in an Evaluate@ call to ensure proper plotting.
+- Wrap expressions in FullSimplify as the outermost function UNLESS it is a
+  plotting expression.
 - Fix any syntax errors in the code to ensure it can be evaluated in a Wolfram
   kernel.
 - Make no other modifications to the code beyond what is necessary for

@@ -1,6 +1,7 @@
 import os
 import re
 import tempfile
+from dataclasses import dataclass
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -10,8 +11,7 @@ from openai import OpenAI
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl
 
-from pyderivehelper.config_openai import OpenAIModels
-from pyderivehelper.config_wl import PlotCommands, SyntaxCheckResults
+from pyderivehelper.openai_api import OpenAIModels, make_openai_api_call
 from pyderivehelper.prompts import (
     SystemPrompts,
     populate_wolfram_code_generator_prompt_template,
@@ -19,40 +19,102 @@ from pyderivehelper.prompts import (
     populate_wolfram_plot_summarizer_prompt_template,
 )
 
+_OPENAI_API_KEY_ENV_VAR: str = 'OPENAI_PERSONAL_MATH_ASSISTANT'
+_PLOT_DIRECTORY: str = 'images'
+_PLOT_EXTENSION: str = '.png'
+
 # =============================================================================
 # Session boiler plate to start Wolfram Language session and OpenAI client
 # =============================================================================
 load_dotenv()
-ws = WolframLanguageSession()
-math_assistant_client = OpenAI(
-    api_key=os.environ['OPENAI_PERSONAL_MATH_ASSISTANT']
+ws: WolframLanguageSession = WolframLanguageSession()
+_MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
+    api_key=os.environ[_OPENAI_API_KEY_ENV_VAR]
 )
+
+# =============================================================================
+# Wolfram Language configuration and constants
+# =============================================================================
+
+
+@dataclass
+class SyntaxCheckResults:
+    """Result markers used by syntax validation."""
+
+    FAILED_RESULT: str = 'False'
+
+
+# https://reference.wolfram.com/language/guide/DataVisualization.html
+@dataclass
+class PlotCommands:
+    """Plot-related Wolfram Language command names."""
+
+    commands: tuple[str, ...] = (
+        'Plot',
+        'Histogram',
+        'Chart',
+        'Gauge',
+        'Dendrogram',
+        'ClusteringTree',
+        'Grid',
+        'Row',
+        'Column',
+        'Multicolumn',
+        'GraphicsGrid',
+        'GraphicsRow',
+        'WordCloud',
+        'ImageCollage',
+        'ImageAssemble',
+        'Scalogram',
+    )
 
 
 # =============================================================================
 # User convenience functions for displaying Wolfram Language results in Jupyter
 # notebooks
 # =============================================================================
-def print_tex(expr):
-    """Prints an raw expression in rendered TeX."""
+
+
+def print_tex(expr: str) -> None:
+    """Display a raw TeX expression.
+
+    Args:
+        expr: The TeX expression to render.
+    """
     display(Math(expr))
 
 
-def print_wexpr(expr):
-    """Prints a Wolfram expression in rendered TeX."""
-    tex_expr = ws.evaluate(wl.ToString(wl.TeXForm(expr)))
+def print_wexpr(expr: object) -> None:
+    """Display a Wolfram expression as TeX.
+
+    Args:
+        expr: The Wolfram expression to render.
+    """
+    tex_expr: str = str(ws.evaluate(wl.ToString(wl.TeXForm(expr))))
     display(Math(tex_expr))
 
 
-def print_wresult(expr):
-    """Evaluates Wolfram expression and renders the result via TeX."""
-    tex_expr = ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
+def print_wresult(expr: object) -> None:
+    """Evaluate a Wolfram expression and display the result as Math via TeX.
+
+    Args:
+        expr: The Wolfram expression to evaluate.
+    """
+    tex_expr: str = str(
+        ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
+    )
     display(Math(tex_expr))
 
 
-def print_wresult_tex(expr):
-    """Evaluates a Wolfram expression and print the result in raw TeX form."""
-    tex_expr = ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
+def print_wresult_tex(expr: object) -> None:
+    """Evaluate a Wolfram expression and print the raw TeX result.
+
+    Args:
+        expr: The Wolfram expression to evaluate.
+    """
+    tex_expr: str = str(
+        ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
+    )
     print(tex_expr)
 
 
@@ -61,18 +123,36 @@ def print_wresult_tex(expr):
 # =============================================================================
 
 
-def check_syntax(expr):
-    valid_syntax_check_str = f'SyntaxQ["{expr}"]'
-    syntax_check_result = str(ws.evaluate(valid_syntax_check_str))
+def check_syntax(expr: str) -> bool:
+    """Check whether a Wolfram Language expression has valid syntax.
+
+    Args:
+        expr: The Wolfram Language expression to validate.
+
+    Returns:
+        True if the expression passes syntax validation, otherwise False.
+    """
+    valid_syntax_check_str: str = f'SyntaxQ["{expr}"]'
+    syntax_check_result: str = str(ws.evaluate(valid_syntax_check_str))
     if SyntaxCheckResults.FAILED_RESULT in syntax_check_result:
         return False
     return True
 
 
-def check_contains_plot_code(expr, plot_commands=PlotCommands.commands):
-    """Returns True when expr contains any plot command word."""
+def check_contains_plot_code(
+    expr: str, plot_commands: tuple[str, ...] = PlotCommands.commands
+) -> bool:
+    """Check whether a Wolfram Language expression contains plot code.
+
+    Args:
+        expr: The Wolfram Language expression to inspect.
+        plot_commands: Plot command names to search for.
+
+    Returns:
+        True if any plot command is found, otherwise False.
+    """
     for command in plot_commands:
-        if re.search(rf'\b{re.escape(command)}\b', expr):
+        if re.search(rf'{re.escape(command)}', expr):
             return True
     return False
 
@@ -82,135 +162,281 @@ def check_contains_plot_code(expr, plot_commands=PlotCommands.commands):
 # ============================================================================
 
 
-def wplot(filename, command):
-    export_expr = f'Export["{filename}", {command}]'
+def wplot(filename: str, command: str) -> None:
+    """Render a Wolfram Language plot from a saved image file.
+
+    Args:
+        filename: Path to the image file to display.
+        command: Wolfram Language plot expression to export.
+    """
+    export_expr: str = f'Export["{filename}", {command}]'
     ws.evaluate(export_expr)
-    img = mpimg.imread(filename)
+    img: object = mpimg.imread(filename)
+    plt.figure()
     plt.imshow(img)
     plt.show()
     plt.axis('off')
 
 
-def wc(expr):
-    """Evaluates an expression, stores, and prints the result"""
-    result = ws.evaluate(expr)
-    save_expr_str = f'rrr = {expr}'
+def wc(expr: object) -> object:
+    """Evaluate a Wolfram expression, store it, and print the result.
+
+    The expression is stored in the Wolfram session under the symbol 'rrr' for
+    easy access in subsequent Wolfram commands.
+
+    Args:
+        expr: The Wolfram expression to evaluate.
+
+    Returns:
+        The evaluated Wolfram result.
+    """
+    result: object = ws.evaluate(expr)
+    save_expr_str: str = f'rrr = {expr}'
     ws.evaluate(save_expr_str)
     print_wresult(ws.evaluate('rrr'))
     return result
 
 
-def wnlp(prompt, model=OpenAIModels.mini):
-    # Generate code
-    print('Generating Wolfram Language code...')
-    response_str = generate_wolfram_language(prompt, model)
+def wnlc(
+    prompt: str, model_str: str = OpenAIModels.mini
+) -> tuple[object, str] | None:
+    """Generate, validate, and evaluate Wolfram Language code.
 
-    # Sanitize the generated code
+    Args:
+        prompt: Natural-language description of the desired computation.
+        model_str: OpenAI model name used for code generation.
+
+    Returns:
+        The Wolfram result and cleaned TeX output, or None for plot or syntax
+        cases.
+    """
+    display(Markdown('**Code Generation Process:**'))
+    print('Generating Wolfram Language code...')
+    response_str: str = _generate_wolfram_language(prompt, model_str)
     print('Sanitizing generated code...')
-    response_str = sanitize_wolfram_language_code(
+    response_str: str = _sanitize_wolfram_language_code(
         response_str, OpenAIModels.mini
     )
-
-    # Check syntax before evaluating
     print('Checking syntax...')
     if not check_syntax(response_str):
-        print('Generated response is not valid Wolfram Language code:')
-        display(Markdown('\n**Invalid Wolfram Code**:\n'))
-        display(Markdown(f'```wolfram\n{response_str}\n```'))
+        _handle_syntax_error(response_str)
         return None
-
-    # Display the generated code
-    display(Markdown('\n**Wolfram Code**:\n'))
-    display(Markdown(f'```wolfram\n{response_str}\n```'))
-
-    # Detect if the code contains plot commands and render the plot if it does
+    _display_generated_code(response_str)
+    print('Checking for plot code...')
     if check_contains_plot_code(response_str):
-        print('Detected plot code. Rendering plot...')
-        os.makedirs('images', exist_ok=True)
-        human_readable_filename = summarize_plot_code_to_filename(
-            response_str, OpenAIModels.mini
-        )
-        prefix = human_readable_filename + '_'
-        filename = ''
-        with tempfile.NamedTemporaryFile(
-            prefix=prefix,
-            dir='images',
-            suffix='.png',
-            delete=False,
-        ) as temp_file:
-            filename = temp_file.name
-            temp_file.close()  # Close the file so that Wolfram can write to it
-        relative_path = os.path.relpath(filename, os.getcwd())
-        relative_path = relative_path.replace(
-            '\\', '/'
-        )  # Handle Windows paths
-        print(relative_path)
-        wplot(relative_path, response_str)
+        _generate_plot_from_wolfram_code(response_str)
         return None
-
-    # Evaluate the result
-    result = ws.evaluate(response_str)
-
-    # Get TeX representation
-    tex_str = ws.evaluate(wl.ToString(wl.TeXForm(result)))
-
-    # Clean TeX representation
-    # Fix the way Wolfram exports hypergeometric functions
-    cleaned_tex_str = re.sub(r' _(\d+[A-Za-z])', r' {}_\1', tex_str)
-
-    # Display the raw evaluated result
-    display(Markdown('\n**Raw Evaluated Result**:\n'))
-    display(Markdown(f'```plaintext\n{result!s}\n```'))
-
-    # Display the rendered TeX result
-    display(Markdown('\n**Rendered Evaluated Result**:\n'))
-    display(Math(cleaned_tex_str))
-
-    # Print raw TeX source code for copy-pasting
-    display(Markdown('\n**Raw TeX**:\n'))
-    display(Markdown(f'```tex\n{cleaned_tex_str}\n```'))
-
+    print('Evaluating code...')
+    result: object = ws.evaluate(response_str)
+    cleaned_tex_str: str = _extract_clean_tex(result)
+    _display_results(result, cleaned_tex_str)
     return result, cleaned_tex_str
 
 
-def generate_wolfram_language(prompt, model):
-    templated_prompt = populate_wolfram_code_generator_prompt_template(prompt)
-    code = make_openai_api_call(
-        model, SystemPrompts.wolfram_code_generator, templated_prompt
+# =============================================================================
+# Wolfram code generation pipeline stages
+# =============================================================================
+
+
+def _generate_wolfram_language(prompt: str, model_str: str) -> str:
+    """Generate Wolfram Language code from a prompt.
+
+    Args:
+        prompt: Natural-language prompt to convert.
+        model_str: OpenAI model used for generation.
+
+    Returns:
+        Generated Wolfram Language code.
+    """
+    templated_prompt: str = populate_wolfram_code_generator_prompt_template(
+        prompt
+    )
+    code: str = make_openai_api_call(
+        _MATH_ASSISTANT_CLIENT,
+        model_str,
+        SystemPrompts.wolfram_code_generator,
+        templated_prompt,
     )
     return code
 
 
-def sanitize_wolfram_language_code(code, model):
-    templated_prompt = populate_wolfram_code_sanitizer_prompt_template(code)
-    sanitized_code = make_openai_api_call(
-        model, SystemPrompts.wolfram_code_sanitizer, templated_prompt
+def _sanitize_wolfram_language_code(code: str, model_str: str) -> str:
+    """Sanitize Wolfram Language code with an OpenAI model.
+
+    Args:
+        code: Wolfram Language code to sanitize.
+        model_str: OpenAI model used for sanitization.
+
+    Returns:
+        Sanitized Wolfram Language code.
+    """
+    templated_prompt: str = populate_wolfram_code_sanitizer_prompt_template(
+        code
+    )
+    sanitized_code: str = make_openai_api_call(
+        _MATH_ASSISTANT_CLIENT,
+        model_str,
+        SystemPrompts.wolfram_code_sanitizer,
+        templated_prompt,
     )
     return sanitized_code
 
 
-def summarize_plot_code_to_filename(code, model):
-    templated_prompt = populate_wolfram_plot_summarizer_prompt_template(code)
-    filename = make_openai_api_call(
-        model, SystemPrompts.wolfram_plot_summarizer, templated_prompt
+def _summarize_plot_code_to_filename(code: str, model_str: str) -> str:
+    """Summarize plot code into a concise filename.
+
+    Args:
+        code: Wolfram Language plot code to summarize.
+        model_str: OpenAI model used for summarization.
+
+    Returns:
+        A short snake_case filename stem.
+    """
+    templated_prompt: str = populate_wolfram_plot_summarizer_prompt_template(
+        code
+    )
+    filename: str = make_openai_api_call(
+        _MATH_ASSISTANT_CLIENT,
+        model_str,
+        SystemPrompts.wolfram_plot_summarizer,
+        templated_prompt,
     )
     return filename
 
 
-def make_openai_api_call(model, system_prompt, prompt_template):
-    response = math_assistant_client.responses.create(
-        model=model,
-        temperature=0,
-        input=[
-            {
-                'role': 'system',
-                'content': system_prompt,
-            },
-            {
-                'role': 'user',
-                'content': prompt_template,
-            },
-        ],
+def _generate_plot_from_wolfram_code(response_str: str) -> None:
+    """Render a plot generated from Wolfram Language code.
+
+    Args:
+        response_str: Wolfram Language plot code to render.
+    """
+    print('Detected plot code. Rendering plot...')
+    human_readable_filename: str = _summarize_plot_code_to_filename(
+        response_str, OpenAIModels.mini
     )
-    response_str: str = response.output_text.strip()
-    return response_str
+    filename: str = _make_image_file(human_readable_filename)
+    wplot(_to_relative_path(filename), response_str)
+
+
+# =============================================================================
+# Post processing and error handling
+# =============================================================================
+
+
+def _extract_clean_tex(result: object) -> str:
+    """Convert a Wolfram result into cleaned TeX.
+
+    Args:
+        result: The Wolfram result to convert.
+
+    Returns:
+        Cleaned TeX text.
+    """
+    tex_str: str = str(ws.evaluate(wl.ToString(wl.TeXForm(result))))
+    cleaned_tex_str: str = _fix_hypergeometric_functions(tex_str)
+    return cleaned_tex_str
+
+
+def _fix_hypergeometric_functions(tex_str: str) -> str:
+    """Fix Wolfram's hypergeometric TeX output for notebook rendering.
+
+    Args:
+        tex_str: Raw TeX text from Wolfram.
+
+    Returns:
+        Adjusted TeX text.
+    """
+    cleaned_tex_str: str = re.sub(r' _(\d+[A-Za-z])', r' {}_\1', tex_str)
+    return cleaned_tex_str
+
+
+def _handle_syntax_error(response_str: str) -> None:
+    """Display syntax validation output for invalid code.
+
+    Args:
+        response_str: Wolfram Language code that failed validation.
+    """
+    _display_syntax_error(response_str)
+
+
+# =============================================================================
+# Display functions
+# =============================================================================
+
+
+def _display_syntax_error(response_str: str) -> None:
+    """Display an invalid-code message and the generated Wolfram code.
+
+    Args:
+        response_str: Wolfram Language code to show.
+    """
+    print('Generated response is not valid Wolfram Language code:')
+    display(Markdown('\n**Invalid Wolfram Code**:\n'))
+    display(Markdown(f'```wolfram\n{response_str}\n```'))
+
+
+def _display_generated_code(response_str: str) -> None:
+    """Display generated Wolfram Language code.
+
+    Args:
+        response_str: Wolfram Language code to show.
+    """
+    display(Markdown('\n**Generated Wolfram Code**:\n'))
+    display(Markdown(f'```wolfram\n{response_str}\n```'))
+
+
+def _display_results(result: object, cleaned_tex_str: str) -> None:
+    """Display the evaluated result and its TeX form.
+
+    Args:
+        result: The evaluated Wolfram result.
+        cleaned_tex_str: Cleaned TeX text for the result.
+    """
+    display(Markdown('\n**Raw Evaluated Result**:\n'))
+    display(Markdown(f'```plaintext\n{result!s}\n```'))
+    display(Markdown('\n**Raw TeX**:\n'))
+    display(Markdown(f'```tex\n{cleaned_tex_str}\n```'))
+    display(Markdown('---'))
+    display(Markdown('\n**Rendered Evaluated Result**:\n'))
+    display(Markdown(f'$$\\Large {cleaned_tex_str}$$'))
+    display(Markdown('---'))
+
+
+# =============================================================================
+# File handling and path manipulation functions
+# =============================================================================
+
+
+def _to_relative_path(filename: str) -> str:
+    """Convert a filesystem path to a relative POSIX path.
+
+    Args:
+        filename: Absolute or local filesystem path.
+
+    Returns:
+        Relative path using forward slashes.
+    """
+    relative_path: str = os.path.relpath(filename, os.getcwd())
+    return relative_path.replace('\\', '/')  # Handle Windows paths
+
+
+def _make_image_file(human_readable_filename: str) -> str:
+    """Create a plot image file path.
+
+    Args:
+        human_readable_filename: Prefix used for the temporary file name.
+
+    Returns:
+        Path to the created temporary image file.
+    """
+    prefix: str = human_readable_filename + '_'
+    os.makedirs(_PLOT_DIRECTORY, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        prefix=prefix,
+        dir=_PLOT_DIRECTORY,
+        suffix=_PLOT_EXTENSION,
+        delete=False,
+    ) as temp_file:
+        filename: str = temp_file.name
+        temp_file.close()  # Close the file so that Wolfram can write to it
+    return filename
