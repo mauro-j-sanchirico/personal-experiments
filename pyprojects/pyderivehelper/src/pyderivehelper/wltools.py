@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import tempfile
@@ -23,6 +24,16 @@ from pyderivehelper.prompts import (
 )
 
 _CONFIG_PATH: Path = Path(__file__).resolve().parents[2] / 'config.yaml'
+logger = logging.getLogger(__name__)
+
+
+def set_log_level(level: str) -> None:
+    """Set this module's logger level.
+
+    Args:
+        level: Logging level name such as "INFO" or "DEBUG".
+    """
+    logger.setLevel(level.upper())
 
 
 def _load_config() -> dict[str, str]:
@@ -37,6 +48,7 @@ _CONFIG: dict[str, str] = _load_config()
 _OPENAI_API_KEY_ENV_VAR: str = _CONFIG['openai_api_key_env_var']
 _PLOT_DIRECTORY: str = _CONFIG['plot_directory']
 _PLOT_EXTENSION: str = _CONFIG['plot_extension']
+_RESULT_STR: str = _CONFIG['result_str']
 
 # =============================================================================
 # Session boiler plate to start Wolfram Language session and OpenAI client
@@ -117,7 +129,7 @@ def print_wresult_tex(expr: object) -> None:
     tex_expr: str = str(
         ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
     )
-    print(tex_expr)
+    logger.info(tex_expr)
 
 
 # =============================================================================
@@ -193,9 +205,9 @@ def wc(expr: object) -> object:
         The evaluated Wolfram result.
     """
     result: object = ws.evaluate(expr)
-    save_expr_str: str = f'rrr = {expr}'
+    save_expr_str: str = f'{_RESULT_STR} = {expr}'
     ws.evaluate(save_expr_str)
-    print_wresult(ws.evaluate('rrr'))
+    print_wresult(ws.evaluate(_RESULT_STR))
     return result
 
 
@@ -212,23 +224,22 @@ def wnlc(
         The Wolfram result and cleaned TeX output, or None for plot or syntax
         cases.
     """
-    display(Markdown('**Code Generation Process:**'))
-    print('Generating Wolfram Language code...')
+    logger.info('Generating Wolfram Language code...')
     response_str: str = _generate_wolfram_language(prompt, model_str)
-    print('Sanitizing generated code...')
+    logger.info('Sanitizing generated code...')
     response_str: str = _sanitize_wolfram_language_code(
         response_str, OpenAIModels.mini
     )
-    print('Checking syntax...')
+    logger.info('Checking syntax...')
     if not check_syntax(response_str):
         _handle_syntax_error(response_str)
         return None
     _display_generated_code(response_str)
-    print('Checking for plot code...')
+    logger.info('Checking for plot code...')
     if check_contains_plot_code(response_str):
         _generate_plot_from_wolfram_code(response_str)
         return None
-    print('Evaluating code...')
+    logger.info('Evaluating code...')
     result: object = ws.evaluate(response_str)
     cleaned_tex_str: str = _extract_clean_tex(result)
     _display_results(result, cleaned_tex_str)
@@ -312,7 +323,7 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
     Args:
         response_str: Wolfram Language plot code to render.
     """
-    print('Detected plot code. Rendering plot...')
+    logger.info('Detected plot code. Rendering plot...')
     human_readable_filename: str = _summarize_plot_code_to_filename(
         response_str, OpenAIModels.mini
     )
@@ -372,7 +383,7 @@ def _display_syntax_error(response_str: str) -> None:
     Args:
         response_str: Wolfram Language code to show.
     """
-    print('Generated response is not valid Wolfram Language code:')
+    logger.info('Generated response is not valid Wolfram Language code.')
     display(Markdown('\n**Invalid Wolfram Code**:\n'))
     display(Markdown(f'```wolfram\n{response_str}\n```'))
 
