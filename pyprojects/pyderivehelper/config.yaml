@@ -1,0 +1,20 @@
+openai_api_key_env_var: OPENAI_PERSONAL_MATH_ASSISTANT
+plot_directory: images
+plot_extension: .png
+plot_commands:
+  - Plot
+  - Histogram
+  - Chart
+  - Gauge
+  - Dendrogram
+  - ClusteringTree
+  - Grid
+  - Row
+  - Column
+  - Multicolumn
+  - GraphicsGrid
+  - GraphicsRow
+  - WordCloud
+  - ImageCollage
+  - ImageAssemble
+  - Scalogram

@@ -2,9 +2,12 @@ import os
 import re
 import tempfile
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, cast
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import yaml
 from dotenv import load_dotenv
 from IPython.display import Markdown, Math, display
 from openai import OpenAI
@@ -19,9 +22,21 @@ from pyderivehelper.prompts import (
     populate_wolfram_plot_summarizer_prompt_template,
 )
 
-_OPENAI_API_KEY_ENV_VAR: str = 'OPENAI_PERSONAL_MATH_ASSISTANT'
-_PLOT_DIRECTORY: str = 'images'
-_PLOT_EXTENSION: str = '.png'
+_CONFIG_PATH: Path = Path(__file__).resolve().parents[2] / 'config.yaml'
+
+
+def _load_config() -> dict[str, str]:
+    with _CONFIG_PATH.open(encoding='utf-8') as config_file:
+        config: Any = yaml.safe_load(config_file)
+    if not isinstance(config, dict):
+        raise ValueError(f'Invalid config file: {_CONFIG_PATH}')
+    return config
+
+
+_CONFIG: dict[str, str] = _load_config()
+_OPENAI_API_KEY_ENV_VAR: str = _CONFIG['openai_api_key_env_var']
+_PLOT_DIRECTORY: str = _CONFIG['plot_directory']
+_PLOT_EXTENSION: str = _CONFIG['plot_extension']
 
 # =============================================================================
 # Session boiler plate to start Wolfram Language session and OpenAI client
@@ -36,12 +51,14 @@ _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
 # Wolfram Language configuration and constants
 # =============================================================================
 
+_WOLFRAM_LANGUAGE_FAILED_RESULT: str = 'False'
+
 
 @dataclass
 class SyntaxCheckResults:
     """Result markers used by syntax validation."""
 
-    FAILED_RESULT: str = 'False'
+    FAILED_RESULT: str = _WOLFRAM_LANGUAGE_FAILED_RESULT
 
 
 # https://reference.wolfram.com/language/guide/DataVisualization.html
@@ -49,23 +66,8 @@ class SyntaxCheckResults:
 class PlotCommands:
     """Plot-related Wolfram Language command names."""
 
-    commands: tuple[str, ...] = (
-        'Plot',
-        'Histogram',
-        'Chart',
-        'Gauge',
-        'Dendrogram',
-        'ClusteringTree',
-        'Grid',
-        'Row',
-        'Column',
-        'Multicolumn',
-        'GraphicsGrid',
-        'GraphicsRow',
-        'WordCloud',
-        'ImageCollage',
-        'ImageAssemble',
-        'Scalogram',
+    commands: tuple[str, ...] = tuple(
+        cast(list[str], _CONFIG['plot_commands'])
     )
 
 

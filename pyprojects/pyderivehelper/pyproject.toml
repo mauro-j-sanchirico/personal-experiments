@@ -8,5 +8,6 @@ dependencies = [
     "ipympl>=0.10.0",
     "ipython>=9.11.0",
     "matplotlib>=3.10.8",
+    "pyyaml>=6.0.2",
     "wolframclient>=1.4.0",
 ]
