@@ -1,6 +1,7 @@
 openai_api_key_env_var: OPENAI_PERSONAL_MATH_ASSISTANT
 plot_directory: images
 plot_extension: .png
+result_str: rrr
 plot_commands:
   - Plot
   - Histogram
