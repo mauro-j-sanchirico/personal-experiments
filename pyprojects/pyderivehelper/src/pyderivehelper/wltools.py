@@ -23,6 +23,11 @@ from pyderivehelper.prompts import (
     populate_wolfram_plot_summarizer_prompt_template,
 )
 
+# =============================================================================
+# Logger and config file setup
+# =============================================================================
+
+
 _CONFIG_PATH: Path = Path(__file__).resolve().parents[2] / 'config.yaml'
 logger = logging.getLogger(__name__)
 
@@ -53,6 +58,7 @@ _RESULT_STR: str = _CONFIG['result_str']
 # =============================================================================
 # Session boiler plate to start Wolfram Language session and OpenAI client
 # =============================================================================
+
 load_dotenv()
 ws: WolframLanguageSession = WolframLanguageSession()
 _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
@@ -225,22 +231,24 @@ def wnlc(
         cases.
     """
     logger.info('Generating Wolfram Language code...')
-    response_str: str = _generate_wolfram_language(prompt, model_str)
+    response_str: str = _generate_wolfram_language(
+        prompt, SystemPrompts.wolfram_code_generator, model_str
+    )
     logger.info('Sanitizing generated code...')
-    response_str: str = _sanitize_wolfram_language_code(
-        response_str, OpenAIModels.mini
+    sanitized_response_str: str = _sanitize_wolfram_language_code(
+        response_str, SystemPrompts.wolfram_code_sanitizer, OpenAIModels.mini
     )
     logger.info('Checking syntax...')
-    if not check_syntax(response_str):
-        _handle_syntax_error(response_str)
+    if not check_syntax(sanitized_response_str):
+        _handle_syntax_error(sanitized_response_str)
         return None
-    _display_generated_code(response_str)
+    _display_generated_code(sanitized_response_str)
     logger.info('Checking for plot code...')
-    if check_contains_plot_code(response_str):
-        _generate_plot_from_wolfram_code(response_str)
+    if check_contains_plot_code(sanitized_response_str):
+        _generate_plot_from_wolfram_code(sanitized_response_str)
         return None
     logger.info('Evaluating code...')
-    result: object = ws.evaluate(response_str)
+    result: object = ws.evaluate(sanitized_response_str)
     cleaned_tex_str: str = _extract_clean_tex(result)
     _display_results(result, cleaned_tex_str)
     return result, cleaned_tex_str
@@ -251,11 +259,14 @@ def wnlc(
 # =============================================================================
 
 
-def _generate_wolfram_language(prompt: str, model_str: str) -> str:
+def _generate_wolfram_language(
+    prompt: str, system_prompt: str, model_str: str
+) -> str:
     """Generate Wolfram Language code from a prompt.
 
     Args:
         prompt: Natural-language prompt to convert.
+        system_prompt: System prompt for Wolfram code generation.
         model_str: OpenAI model used for generation.
 
     Returns:
@@ -267,17 +278,20 @@ def _generate_wolfram_language(prompt: str, model_str: str) -> str:
     code: str = make_openai_api_call(
         _MATH_ASSISTANT_CLIENT,
         model_str,
-        SystemPrompts.wolfram_code_generator,
+        system_prompt,
         templated_prompt,
     )
     return code
 
 
-def _sanitize_wolfram_language_code(code: str, model_str: str) -> str:
+def _sanitize_wolfram_language_code(
+    code: str, system_prompt: str, model_str: str
+) -> str:
     """Sanitize Wolfram Language code with an OpenAI model.
 
     Args:
         code: Wolfram Language code to sanitize.
+        system_prompt: System prompt for Wolfram code sanitization.
         model_str: OpenAI model used for sanitization.
 
     Returns:
@@ -289,17 +303,20 @@ def _sanitize_wolfram_language_code(code: str, model_str: str) -> str:
     sanitized_code: str = make_openai_api_call(
         _MATH_ASSISTANT_CLIENT,
         model_str,
-        SystemPrompts.wolfram_code_sanitizer,
+        system_prompt,
         templated_prompt,
     )
     return sanitized_code
 
 
-def _summarize_plot_code_to_filename(code: str, model_str: str) -> str:
+def _summarize_plot_code_to_filename(
+    code: str, system_prompt: str, model_str: str
+) -> str:
     """Summarize plot code into a concise filename.
 
     Args:
         code: Wolfram Language plot code to summarize.
+        system_prompt: System prompt for plot summarization.
         model_str: OpenAI model used for summarization.
 
     Returns:
@@ -311,7 +328,7 @@ def _summarize_plot_code_to_filename(code: str, model_str: str) -> str:
     filename: str = make_openai_api_call(
         _MATH_ASSISTANT_CLIENT,
         model_str,
-        SystemPrompts.wolfram_plot_summarizer,
+        system_prompt,
         templated_prompt,
     )
     return filename
@@ -325,7 +342,7 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
     """
     logger.info('Detected plot code. Rendering plot...')
     human_readable_filename: str = _summarize_plot_code_to_filename(
-        response_str, OpenAIModels.mini
+        response_str, SystemPrompts.wolfram_plot_summarizer, OpenAIModels.mini
     )
     filename: str = _make_image_file(human_readable_filename)
     wplot(_to_relative_path(filename), response_str)
