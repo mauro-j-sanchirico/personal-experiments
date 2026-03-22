@@ -56,17 +56,33 @@ class SystemPrompts:
     wolfram_plot_summarizer: str = _WOLFRAM_PLOT_SUMMARIZER_TEXT
 
 
-def populate_wolfram_code_generator_prompt_template(prompt):
-    return f"""
+class Agent:
+    def __init__(self, system_prompt: str, model: str) -> None:
+        self.system_prompt = system_prompt
+        self.model = model
+
+    def template_prompt(self, prompt: str) -> str:
+        raise NotImplementedError
+
+
+class WolframCodeGenerator(Agent):
+    def __init__(self, model: str) -> None:
+        super().__init__(SystemPrompts.wolfram_code_generator, model)
+
+    def template_prompt(self, prompt: str) -> str:
+        return f"""
     Convert the following description into a Wolfram Language expression.
     Description:
     {prompt}
     Wolfram Language:
     """
 
+class WolframCodeSanitizer(Agent):
+    def __init__(self, model: str) -> None:
+        super().__init__(SystemPrompts.wolfram_code_sanitizer, model)
 
-def populate_wolfram_code_sanitizer_prompt_template(code):
-    return f"""
+    def template_prompt(self, code: str) -> str:
+        return f"""
     The following Wolfram Language code may contain syntax errors or other
     issues. Correct it to ensure it can be evaluated in a Wolfram kernel.
     Code:
@@ -75,8 +91,12 @@ def populate_wolfram_code_sanitizer_prompt_template(code):
     """
 
 
-def populate_wolfram_plot_summarizer_prompt_template(code):
-    return f"""
+class WolframPlotSummarizer(Agent):
+    def __init__(self, model: str) -> None:
+        super().__init__(SystemPrompts.wolfram_plot_summarizer, model)
+
+    def template_prompt(self, code: str) -> str:
+        return f"""
     Analyze the following Wolfram Language code that generates a plot and
     provide a concise filename with no spaces that describes the plot.
     Code:
