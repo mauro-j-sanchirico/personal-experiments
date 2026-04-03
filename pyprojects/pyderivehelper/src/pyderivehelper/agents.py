@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-_WOLFRAM_CODE_GENERATOR_TEXT = """
+_WOLFRAM_CODE_GENERATOR_SYSTEM_PROMPT = """
 You are a Wolfram Language code generator.
 
 Your task is to translate natural language descriptions of mathematical
@@ -19,7 +19,7 @@ Strict requirements:
 - Return exactly one valid Wolfram Language expression.
 """
 
-_WOLFRAM_CODE_SANITIZER_TEXT = """
+_WOLFRAM_CODE_SANITIZER_SYSTEM_PROMPT = """
 You are a Wolfram Language code sanitizer.
 
 Your task is to take Wolfram Language code that may contain syntax or other
@@ -37,7 +37,7 @@ Pay special attention to the following while sanitizing:
   sanitization.
 """
 
-_WOLFRAM_PLOT_SUMMARIZER_TEXT = """
+_WOLFRAM_PLOT_SUMMARIZER_SYSTEM_PROMPT = """
 You are a Wolfram Language plot summarizer.
 Your task is to analyze Wolfram Language code that generates a plot and provide
 a concise filename with no spaces that describes the plot.
@@ -49,11 +49,11 @@ Strict requirements:
 """
 
 
-@dataclass
+@dataclass(frozen=True)
 class SystemPrompts:
-    wolfram_code_generator: str = _WOLFRAM_CODE_GENERATOR_TEXT
-    wolfram_code_sanitizer: str = _WOLFRAM_CODE_SANITIZER_TEXT
-    wolfram_plot_summarizer: str = _WOLFRAM_PLOT_SUMMARIZER_TEXT
+    wolfram_code_generator: str = _WOLFRAM_CODE_GENERATOR_SYSTEM_PROMPT
+    wolfram_code_sanitizer: str = _WOLFRAM_CODE_SANITIZER_SYSTEM_PROMPT
+    wolfram_plot_summarizer: str = _WOLFRAM_PLOT_SUMMARIZER_SYSTEM_PROMPT
 
 
 class Agent:
@@ -76,6 +76,7 @@ class WolframCodeGenerator(Agent):
     {prompt}
     Wolfram Language:
     """
+
 
 class WolframCodeSanitizer(Agent):
     def __init__(self, model: str) -> None:
