@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pyderivehelper.config_file_management import load_config
+from pyderivehelper.openai_api import make_openai_api_call
 
 _CONFIG: dict[str, Any] = load_config()
 
@@ -20,17 +21,29 @@ class SystemPrompts:
 
 
 class Agent:
-    def __init__(self, system_prompt: str, model: str) -> None:
-        self.system_prompt = system_prompt
+    def __init__(self, client: object, model: str, system_prompt: str) -> None:
+        self.client = client
         self.model = model
+        self.system_prompt = system_prompt
 
     def template_prompt(self, prompt: str) -> str:
         raise NotImplementedError
 
+    def call(self, prompt: str) -> str:
+        """Template a prompt and send it to the OpenAI API."""
+        templated_prompt: str = self.template_prompt(prompt)
+        response: str = make_openai_api_call(
+            self.client,
+            self.model,
+            self.system_prompt,
+            templated_prompt,
+        )
+        return response
+
 
 class WolframCodeGenerator(Agent):
-    def __init__(self, model: str) -> None:
-        super().__init__(SystemPrompts.wolfram_code_generator, model)
+    def __init__(self, client: object, model: str) -> None:
+        super().__init__(client, model, SystemPrompts.wolfram_code_generator)
 
     def template_prompt(self, prompt: str) -> str:
         return f"""
@@ -42,8 +55,8 @@ class WolframCodeGenerator(Agent):
 
 
 class WolframCodeSanitizer(Agent):
-    def __init__(self, model: str) -> None:
-        super().__init__(SystemPrompts.wolfram_code_sanitizer, model)
+    def __init__(self, client: object, model: str) -> None:
+        super().__init__(client, model, SystemPrompts.wolfram_code_sanitizer)
 
     def template_prompt(self, code: str) -> str:
         return f"""
@@ -56,8 +69,8 @@ class WolframCodeSanitizer(Agent):
 
 
 class WolframPlotSummarizer(Agent):
-    def __init__(self, model: str) -> None:
-        super().__init__(SystemPrompts.wolfram_plot_summarizer, model)
+    def __init__(self, client: object, model: str) -> None:
+        super().__init__(client, model, SystemPrompts.wolfram_plot_summarizer)
 
     def template_prompt(self, code: str) -> str:
         return f"""
