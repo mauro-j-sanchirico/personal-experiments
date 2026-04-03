@@ -18,6 +18,7 @@ class SystemPrompts:
     wolfram_plot_summarizer: str = _CONFIG[
         'wolfram_plot_summarizer_system_prompt'
     ]
+    wolfram_code_fixer: str = _CONFIG['wolfram_code_fixer_system_prompt']
 
 
 class Agent:
@@ -65,6 +66,21 @@ class WolframCodeSanitizer(Agent):
     Code:
     {code}
     Sanitized Code:
+    """
+
+
+class WolframCodeFixer(Agent):
+    def __init__(self, client: object, model: str) -> None:
+        super().__init__(client, model, SystemPrompts.wolfram_code_fixer)
+
+    def template_prompt(self, code: str) -> str:
+        return f"""
+    The following Wolfram Language code produced an error during evaluation.
+    Analyze the error and fix the code to ensure it can be evaluated in a
+    Wolfram kernel.
+    Code:
+    {code}
+    Fixed Code:
     """
 
 

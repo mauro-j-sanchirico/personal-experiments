@@ -10,9 +10,10 @@ from IPython.display import Markdown, Math, display
 from openai import OpenAI
 from PIL import Image as PillowImage
 from wolframclient.evaluation import WolframLanguageSession
-from wolframclient.language import wl
+from wolframclient.language import wl, wlexpr
 
 from pyderivehelper.agents import (
+    WolframCodeFixer,
     WolframCodeGenerator,
     WolframCodeSanitizer,
     WolframPlotSummarizer,
@@ -41,6 +42,9 @@ _OPENAI_API_KEY_ENV_VAR: str = _CONFIG['openai_api_key_env_var']
 _PLOT_DIRECTORY: str = _CONFIG['plot_directory']
 _PLOT_EXTENSION: str = _CONFIG['plot_extension']
 _RESULT_STR: str = _CONFIG['result_str']
+_VALIDATION_RETRY_COUNT: int = max(
+    0, int(_CONFIG['wolfram_code_validation_retry_count'])
+)
 
 
 # =============================================================================
@@ -126,60 +130,6 @@ def print_wresult_tex(expr: object) -> None:
     logger.info(tex_expr)
 
 
-# =============================================================================
-# String utility functions
-# =============================================================================
-
-
-def trim_leading_whitespace(text: str) -> str:
-    """Remove leading whitespace from text."""
-    return text.lstrip()
-
-
-def starts_with_forward_slash(text: str) -> bool:
-    """Check whether text begins with a forward slash."""
-    return text.startswith('/')
-
-
-# =============================================================================
-# I/O validation functions
-# =============================================================================
-
-
-def check_syntax(expr: str) -> bool:
-    """Check whether a Wolfram Language expression has valid syntax.
-
-    Args:
-        expr: The Wolfram Language expression to validate.
-
-    Returns:
-        True if the expression passes syntax validation, otherwise False.
-    """
-    valid_syntax_check_str: str = f'SyntaxQ["{expr}"]'
-    syntax_check_result: str = str(ws.evaluate(valid_syntax_check_str))
-    if SyntaxCheckResults.FAILED_RESULT in syntax_check_result:
-        return False
-    return True
-
-
-def check_contains_plot_code(
-    expr: str, plot_commands: tuple[str, ...] = PlotCommands.commands
-) -> bool:
-    """Check whether a Wolfram Language expression contains plot code.
-
-    Args:
-        expr: The Wolfram Language expression to inspect.
-        plot_commands: Plot command names to search for.
-
-    Returns:
-        True if any plot command is found, otherwise False.
-    """
-    for command in plot_commands:
-        if re.search(rf'{re.escape(command)}', expr):
-            return True
-    return False
-
-
 # ============================================================================
 # Main user-facing functions for generating and using Wolfram Language code
 # ============================================================================
@@ -230,17 +180,27 @@ def wnlc(
         The Wolfram result and cleaned TeX output, or None for plot or syntax
         cases.
     """
-    prompt = trim_leading_whitespace(prompt)
-    if starts_with_forward_slash(prompt):
+    # Preprocessing
+    prompt = _trim_leading_whitespace(prompt)
+    if _starts_with_forward_slash(prompt):
         logger.info('Found slash command.')
-    logger.info('Generating Wolfram Language code...')
+
+    # Instantiation
     wolfram_code_generator: WolframCodeGenerator = WolframCodeGenerator(
         _MATH_ASSISTANT_CLIENT, model_str
     )
     wolfram_code_sanitizer: WolframCodeSanitizer = WolframCodeSanitizer(
         _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
     )
+    wolfram_code_fixer: WolframCodeFixer = WolframCodeFixer(
+        _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
+    )
+
+    # Code generation
+    logger.info('Generating Wolfram Language code...')
     response_str: str = wolfram_code_generator.call(prompt)
+
+    # Code sanitization
     logger.info('Sanitizing generated code...')
     sanitized_response_str: str = wolfram_code_sanitizer.call(response_str)
     logger.info('Checking syntax...')
@@ -248,15 +208,50 @@ def wnlc(
         _handle_syntax_error(sanitized_response_str)
         return None
     _display_generated_code(sanitized_response_str)
+
+    # Validation
+    logger.info('Validating code...')
+    validated_response_str = _validate_or_fix_wolfram_code(
+        sanitized_response_str, wolfram_code_fixer
+    )
+    if not validated_response_str:
+        _handle_validation_error(response_str)
+        return None
+
+    # Check for plot code
     logger.info('Checking for plot code...')
     if check_contains_plot_code(sanitized_response_str):
         _generate_plot_from_wolfram_code(sanitized_response_str)
         return None
+
+    # Evaluation
     logger.info('Evaluating code...')
     result: object = ws.evaluate(sanitized_response_str)
+
+    # Clean up
     cleaned_tex_str: str = _extract_clean_tex(result)
+
+    # Display
     _display_results(result, cleaned_tex_str)
     return result, cleaned_tex_str
+
+
+# =============================================================================
+# Pipeline steps
+# =============================================================================
+
+
+def _validate_or_fix_wolfram_code(
+    sanitized_response_str: str, wolfram_code_fixer: WolframCodeFixer
+) -> str:
+    """Validate Wolfram code and try to fix it if needed."""
+    for _ in range(_VALIDATION_RETRY_COUNT + 1):
+        if validate_wolfram_code(sanitized_response_str):
+            return sanitized_response_str
+        sanitized_response_str = wolfram_code_fixer.call(
+            sanitized_response_str
+        )
+    return ''
 
 
 def _generate_plot_from_wolfram_code(response_str: str) -> None:
@@ -272,6 +267,52 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
     human_readable_filename: str = wolfram_plot_summarizer.call(response_str)
     filename: str = _make_image_file(human_readable_filename)
     wplot(_to_relative_path(filename), response_str)
+
+
+# =============================================================================
+# I/O validation functions
+# =============================================================================
+
+
+def validate_wolfram_code(sanitized_response_str):
+    result = ws.evaluate(wlexpr(f'Check[{sanitized_response_str}, $Failed]'))
+    if result == wl.Symbol('$Failed'):
+        return False
+    return True
+
+
+def check_syntax(expr: str) -> bool:
+    """Check whether a Wolfram Language expression has valid syntax.
+
+    Args:
+        expr: The Wolfram Language expression to validate.
+
+    Returns:
+        True if the expression passes syntax validation, otherwise False.
+    """
+    valid_syntax_check_str: str = f'SyntaxQ["{expr}"]'
+    syntax_check_result: str = str(ws.evaluate(valid_syntax_check_str))
+    if SyntaxCheckResults.FAILED_RESULT in syntax_check_result:
+        return False
+    return True
+
+
+def check_contains_plot_code(
+    expr: str, plot_commands: tuple[str, ...] = PlotCommands.commands
+) -> bool:
+    """Check whether a Wolfram Language expression contains plot code.
+
+    Args:
+        expr: The Wolfram Language expression to inspect.
+        plot_commands: Plot command names to search for.
+
+    Returns:
+        True if any plot command is found, otherwise False.
+    """
+    for command in plot_commands:
+        if re.search(rf'{re.escape(command)}', expr):
+            return True
+    return False
 
 
 # =============================================================================
@@ -329,6 +370,28 @@ def _handle_syntax_error(response_str: str) -> None:
         response_str: Wolfram Language code that failed validation.
     """
     _display_syntax_error(response_str)
+
+
+def _handle_validation_error(response_str: str) -> None:
+    """Display validation output for code that could not be fixed."""
+    logger.info('Generated response could not be validated.')
+    display(Markdown('\n**Unfixable Wolfram Code**:\n'))
+    display(Markdown(f'```wolfram\n{response_str}\n```'))
+
+
+# =============================================================================
+# String utility functions
+# =============================================================================
+
+
+def _trim_leading_whitespace(text: str) -> str:
+    """Remove leading whitespace from text."""
+    return text.lstrip()
+
+
+def _starts_with_forward_slash(text: str) -> bool:
+    """Check whether text begins with a forward slash."""
+    return text.startswith('/')
 
 
 # =============================================================================

@@ -2,6 +2,7 @@ openai_api_key_env_var: OPENAI_PERSONAL_MATH_ASSISTANT
 plot_directory: images
 plot_extension: .png
 result_str: rrr
+wolfram_code_validation_retry_count: 3
 wolfram_code_generator_system_prompt: |
   You are a Wolfram Language code generator.
 
@@ -35,6 +36,16 @@ wolfram_code_sanitizer_system_prompt: |
     kernel.
   - Make no other modifications to the code beyond what is necessary for
     sanitization.
+wolfram_code_fixer_system_prompt: |
+  You are a Wolfram Language code fixer.
+
+  Your task is to take Wolfram Language code that has been evaluated and produced
+  an error, analyze the error message, and modify the code to fix the error.
+
+  Strict requirements:
+  - Only modify the code as much as necessary to fix the error.
+  - Do not make any other changes to the code beyond what is necessary for
+    fixing.
 wolfram_plot_summarizer_system_prompt: |
   You are a Wolfram Language plot summarizer.
   Your task is to analyze Wolfram Language code that generates a plot and provide
