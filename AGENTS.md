@@ -36,7 +36,7 @@ These rules are mandatory and override default behavior.
 - Keep functions small (target: <30 lines).
 - Limit nesting (max ~2 levels where possible).
 
-## 3. Modification Rules (VERY IMPORTANT)
+## 4. Modification Rules
 
 When editing existing code:
 
@@ -45,7 +45,7 @@ When editing existing code:
 - Do not rewrite working code without clear benefit.
 - Preserve existing structure unless there is a strong reason.
 
-## 4. Comments & Documentation
+## 5. Comments and Documentation
 
 - Comment only when intent is not obvious.
 - Do not restate what the code already shows.
