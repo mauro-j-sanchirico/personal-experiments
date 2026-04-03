@@ -127,6 +127,21 @@ def print_wresult_tex(expr: object) -> None:
 
 
 # =============================================================================
+# String utility functions
+# =============================================================================
+
+
+def trim_leading_whitespace(text: str) -> str:
+    """Remove leading whitespace from text."""
+    return text.lstrip()
+
+
+def starts_with_forward_slash(text: str) -> bool:
+    """Check whether text begins with a forward slash."""
+    return text.startswith('/')
+
+
+# =============================================================================
 # I/O validation functions
 # =============================================================================
 
@@ -215,6 +230,9 @@ def wnlc(
         The Wolfram result and cleaned TeX output, or None for plot or syntax
         cases.
     """
+    prompt = trim_leading_whitespace(prompt)
+    if starts_with_forward_slash(prompt):
+        logger.info('Found slash command.')
     logger.info('Generating Wolfram Language code...')
     wolfram_code_generator: WolframCodeGenerator = WolframCodeGenerator(
         model_str
