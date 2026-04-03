@@ -5,11 +5,10 @@ import tempfile
 from dataclasses import dataclass
 from typing import cast
 
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from IPython.display import Markdown, Math, display
 from openai import OpenAI
+from PIL import Image as PillowImage
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl
 
@@ -180,11 +179,8 @@ def wplot(filename: str, command: str) -> None:
     """
     export_expr: str = f'Export["{filename}", {command}]'
     ws.evaluate(export_expr)
-    img: object = mpimg.imread(filename)
-    plt.figure()
-    plt.imshow(img)
-    plt.show()
-    plt.axis('off')
+    with PillowImage.open(filename) as img:
+        display(img)
 
 
 def wc(expr: object) -> object:
