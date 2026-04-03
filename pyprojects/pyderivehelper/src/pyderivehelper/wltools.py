@@ -3,12 +3,10 @@ import os
 import re
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-import yaml
 from dotenv import load_dotenv
 from IPython.display import Markdown, Math, display
 from openai import OpenAI
@@ -20,14 +18,13 @@ from pyderivehelper.agents import (
     WolframCodeSanitizer,
     WolframPlotSummarizer,
 )
+from pyderivehelper.config_file_management import load_config
 from pyderivehelper.openai_api import OpenAIModels, make_openai_api_call
 
 # =============================================================================
 # Logger and config file setup
 # =============================================================================
 
-
-_CONFIG_PATH: Path = Path(__file__).resolve().parents[2] / 'config.yaml'
 logger = logging.getLogger(__name__)
 
 
@@ -40,15 +37,7 @@ def set_log_level(level: str) -> None:
     logger.setLevel(level.upper())
 
 
-def _load_config() -> dict[str, str]:
-    with _CONFIG_PATH.open(encoding='utf-8') as config_file:
-        config: Any = yaml.safe_load(config_file)
-    if not isinstance(config, dict):
-        raise ValueError(f'Invalid config file: {_CONFIG_PATH}')
-    return config
-
-
-_CONFIG: dict[str, str] = _load_config()
+_CONFIG: dict[str, str] = load_config()
 _OPENAI_API_KEY_ENV_VAR: str = _CONFIG['openai_api_key_env_var']
 _PLOT_DIRECTORY: str = _CONFIG['plot_directory']
 _PLOT_EXTENSION: str = _CONFIG['plot_extension']
