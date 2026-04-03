@@ -180,10 +180,15 @@ def wnlc(
         The Wolfram result and cleaned TeX output, or None for plot or syntax
         cases.
     """
+    logger.info('Logger level: %s', logging.getLevelName(logger.level))
+
     # Preprocessing
     prompt = _trim_leading_whitespace(prompt)
-    if _starts_with_forward_slash(prompt):
-        logger.info('Found slash command.')
+
+    # Slash command handling
+    slash_commands, prompt = _parse_slash_commands(prompt)
+    if slash_commands:
+        logger.info('Found slash command(s): %s', ', '.join(slash_commands))
 
     # Instantiation
     wolfram_code_generator: WolframCodeGenerator = WolframCodeGenerator(
@@ -384,14 +389,54 @@ def _handle_validation_error(response_str: str) -> None:
 # =============================================================================
 
 
+_SLASH_COMMANDS: tuple[str, ...] = (
+    'code',
+    'tex',
+    'mathjax',
+    'quiet',
+    'run',
+    'report',
+    'help',
+)
+
+_LEADING_SLASH_TOKEN_PATTERN: re.Pattern[str] = re.compile(r'/([^\s/]+)')
+_LEADING_SLASH_BLOCK_PATTERN: re.Pattern[str] = re.compile(
+    r'^(?:/[^\s/]+(?:\s+|(?=/)|$))+'
+)
+
+
 def _trim_leading_whitespace(text: str) -> str:
     """Remove leading whitespace from text."""
     return text.lstrip()
 
 
-def _starts_with_forward_slash(text: str) -> bool:
-    """Check whether text begins with a forward slash."""
-    return text.startswith('/')
+def _parse_slash_commands(text: str) -> tuple[list[str], str]:
+    """Validate leading slash commands and return the valid prefix.
+
+    Args:
+        text: Input text that may start with slash commands.
+
+    Returns:
+        A tuple of valid leading commands and the text with that valid prefix
+        removed.
+    """
+    match: re.Match[str] | None = _LEADING_SLASH_BLOCK_PATTERN.match(text)
+    if match is None:
+        return [], text
+
+    valid_commands: list[str] = []
+    for command_match in _LEADING_SLASH_TOKEN_PATTERN.finditer(match.group(0)):
+        command_name: str = command_match.group(1)
+        if command_name not in _SLASH_COMMANDS:
+            logger.error(
+                'Unknown slash command /%s. Any subsequent slash commands '
+                'were ignored.',
+                command_name,
+            )
+            break
+        valid_commands.append(command_name)
+
+    return valid_commands, text[match.end() :].lstrip()
 
 
 # =============================================================================
