@@ -74,7 +74,7 @@ _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
 _WOLFRAM_LANGUAGE_FAILED_RESULT: str = 'False'
 
 
-@dataclass
+@dataclass(frozen=True)
 class SyntaxCheckResults:
     """Result markers used by syntax validation."""
 
@@ -82,7 +82,7 @@ class SyntaxCheckResults:
 
 
 # https://reference.wolfram.com/language/guide/DataVisualization.html
-@dataclass
+@dataclass(frozen=True)
 class PlotCommands:
     """Plot-related Wolfram Language command names."""
 
