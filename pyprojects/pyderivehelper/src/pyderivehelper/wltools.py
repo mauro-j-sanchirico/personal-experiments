@@ -122,10 +122,8 @@ def print_wresult(expr: object) -> None:
     Args:
         expr: The Wolfram expression to evaluate.
     """
-    tex_expr: str = str(
-        ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
-    )
-    display(Math(tex_expr))
+    clean_tex_expr = _extract_clean_tex(expr)
+    display(Math(clean_tex_expr))
 
 
 def print_wresult_tex(expr: object) -> None:
@@ -366,6 +364,7 @@ def _extract_clean_tex(result: object) -> str:
     """
     tex_str: str = str(ws.evaluate(wl.ToString(wl.TeXForm(result))))
     cleaned_tex_str: str = _fix_hypergeometric_functions(tex_str)
+    cleaned_tex_str: str = _fix_fbox(cleaned_tex_str)
     return cleaned_tex_str
 
 
@@ -379,6 +378,21 @@ def _fix_hypergeometric_functions(tex_str: str) -> str:
         Adjusted TeX text.
     """
     cleaned_tex_str: str = re.sub(r' _(\d+[A-Za-z])', r' {}_\1', tex_str)
+    return cleaned_tex_str
+
+
+def _fix_fbox(tex_str: str) -> str:
+    """Fix Wolfram boxed TeX output for notebook rendering.
+
+    Args:
+        tex_str: Raw TeX text from Wolfram.
+
+    Returns:
+        Adjusted TeX text with fbox removed.
+    """
+    cleaned_tex_str: str = re.sub(
+        r'\\fbox\{\$(.*?)\$\}', r'\\boxed{\1}', tex_str
+    )
     return cleaned_tex_str
 
 
