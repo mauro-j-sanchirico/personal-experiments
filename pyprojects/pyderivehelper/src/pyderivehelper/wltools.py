@@ -18,7 +18,7 @@ from pyderivehelper.agents import (
     WolframPlotSummarizer,
 )
 from pyderivehelper.config_file_management import load_config
-from pyderivehelper.openai_api import OpenAIModels, make_openai_api_call
+from pyderivehelper.openai_api import OpenAIModels
 
 # =============================================================================
 # Logger and config file setup
@@ -235,18 +235,14 @@ def wnlc(
         logger.info('Found slash command.')
     logger.info('Generating Wolfram Language code...')
     wolfram_code_generator: WolframCodeGenerator = WolframCodeGenerator(
-        model_str
+        _MATH_ASSISTANT_CLIENT, model_str
     )
-    response_str: str = _generate_wolfram_language(
-        prompt, wolfram_code_generator
-    )
-    logger.info('Sanitizing generated code...')
     wolfram_code_sanitizer: WolframCodeSanitizer = WolframCodeSanitizer(
-        OpenAIModels.mini
+        _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
     )
-    sanitized_response_str: str = _sanitize_wolfram_language_code(
-        response_str, wolfram_code_sanitizer
-    )
+    response_str: str = wolfram_code_generator.call(prompt)
+    logger.info('Sanitizing generated code...')
+    sanitized_response_str: str = wolfram_code_sanitizer.call(response_str)
     logger.info('Checking syntax...')
     if not check_syntax(sanitized_response_str):
         _handle_syntax_error(sanitized_response_str)
@@ -263,77 +259,6 @@ def wnlc(
     return result, cleaned_tex_str
 
 
-# =============================================================================
-# Wolfram code generation pipeline stages
-# =============================================================================
-
-
-def _generate_wolfram_language(
-    prompt: str, agent: WolframCodeGenerator
-) -> str:
-    """Generate Wolfram Language code from a prompt using an agent.
-
-    Args:
-        prompt: Natural-language prompt to convert.
-        agent: Agent that supplies the system prompt, model, and template.
-
-    Returns:
-        Generated Wolfram Language code.
-    """
-    templated_prompt: str = agent.template_prompt(prompt)
-    code: str = make_openai_api_call(
-        _MATH_ASSISTANT_CLIENT,
-        agent.model,
-        agent.system_prompt,
-        templated_prompt,
-    )
-    return code
-
-
-def _sanitize_wolfram_language_code(
-    code: str, agent: WolframCodeSanitizer
-) -> str:
-    """Sanitize Wolfram Language code using an agent.
-
-    Args:
-        code: Wolfram Language code to sanitize.
-        agent: Agent that supplies the system prompt, model, and template.
-
-    Returns:
-        Sanitized Wolfram Language code.
-    """
-    templated_prompt: str = agent.template_prompt(code)
-    sanitized_code: str = make_openai_api_call(
-        _MATH_ASSISTANT_CLIENT,
-        agent.model,
-        agent.system_prompt,
-        templated_prompt,
-    )
-    return sanitized_code
-
-
-def _summarize_plot_code_to_filename(
-    code: str, agent: WolframPlotSummarizer
-) -> str:
-    """Summarize plot code into a concise filename using an agent.
-
-    Args:
-        code: Wolfram Language plot code to summarize.
-        agent: Agent that supplies the system prompt, model, and template.
-
-    Returns:
-        A short snake_case filename stem.
-    """
-    templated_prompt: str = agent.template_prompt(code)
-    filename: str = make_openai_api_call(
-        _MATH_ASSISTANT_CLIENT,
-        agent.model,
-        agent.system_prompt,
-        templated_prompt,
-    )
-    return filename
-
-
 def _generate_plot_from_wolfram_code(response_str: str) -> None:
     """Render a plot generated from Wolfram Language code.
 
@@ -342,11 +267,9 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
     """
     logger.info('Detected plot code. Rendering plot...')
     wolfram_plot_summarizer: WolframPlotSummarizer = WolframPlotSummarizer(
-        OpenAIModels.mini
+        _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
     )
-    human_readable_filename: str = _summarize_plot_code_to_filename(
-        response_str, wolfram_plot_summarizer
-    )
+    human_readable_filename: str = wolfram_plot_summarizer.call(response_str)
     filename: str = _make_image_file(human_readable_filename)
     wplot(_to_relative_path(filename), response_str)
 
