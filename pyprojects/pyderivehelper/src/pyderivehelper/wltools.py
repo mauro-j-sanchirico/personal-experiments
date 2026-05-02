@@ -15,8 +15,8 @@ from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
 
 from pyderivehelper.agents import (
-    TeXGenerator,
     TeXCodeFixer,
+    TeXGenerator,
     WolframCodeFixer,
     WolframCodeGenerator,
     WolframCodeSanitizer,
