@@ -182,7 +182,7 @@ def _wnlc_code_pipeline(
         prompt, model_str
     )
     if not validated_response_str:
-        _handle_validation_error(response_str)
+        _handle_wolfram_validation_error(response_str)
         return None
     _display_generated_code(validated_response_str)
     return (None, validated_response_str)
@@ -197,17 +197,10 @@ def _wnlc_tex_pipeline(
         prompt, model_str
     )
     if not validated_response_str:
-        _display_generated_tex(response_str)
+        _handle_tex_validation_error(response_str)
         return None
     _display_generated_tex(validated_response_str)
     return (None, validated_response_str)
-
-
-def _wnlc_mathjax_pipeline(
-    prompt: str, model_str: str
-) -> tuple[object, str] | None:
-    """Stub pipeline for the /mathjax slash command."""
-    logger.info('Executing /mathjax pipeline...')
 
 
 def _wnlc_run_pipeline(
@@ -240,7 +233,7 @@ def _wnlc_default_pipeline(
         prompt, model_str
     )
     if not validated_response_str:
-        _handle_validation_error(response_str)
+        _handle_wolfram_validation_error(response_str)
         return None
     _display_generated_code(validated_response_str)
     logger.info('Checking for plot code...')
@@ -263,7 +256,6 @@ _SlashCommandPipeline = Callable[[str, str], tuple[object, str] | None]
 _SLASH_COMMANDS: dict[str, _SlashCommandPipeline] = {
     'code': _wnlc_code_pipeline,
     'tex': _wnlc_tex_pipeline,
-    'mathjax': _wnlc_mathjax_pipeline,
     'run': _wnlc_run_pipeline,
     'report': _wnlc_report_pipeline,
     'help': _wnlc_help_pipeline,
@@ -448,11 +440,18 @@ def _fix_fbox(tex_str: str) -> str:
     return cleaned_tex_str
 
 
-def _handle_validation_error(response_str: str) -> None:
+def _handle_wolfram_validation_error(response_str: str) -> None:
     """Display validation output for code that could not be fixed."""
     logger.info('Generated response could not be validated.')
     display(Markdown('\n**Unfixable Wolfram Code**:\n'))
     display(Markdown(f'```wolfram\n{response_str}\n```'))
+
+
+def _handle_tex_validation_error(response_str: str) -> None:
+    """Display validation output for TeX that could not be fixed."""
+    logger.info('Generated TeX could not be validated.')
+    display(Markdown('\n**Unfixable TeX**:\n'))
+    display(Markdown(f'```tex\n{response_str}\n```'))
 
 
 # =============================================================================
