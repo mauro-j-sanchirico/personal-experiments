@@ -9,6 +9,8 @@ _CONFIG: dict[str, Any] = load_config()
 
 @dataclass(frozen=True)
 class SystemPrompts:
+    tex_generator: str = _CONFIG['tex_generator_system_prompt']
+    tex_code_fixer: str = _CONFIG['tex_code_fixer_system_prompt']
     wolfram_code_generator: str = _CONFIG[
         'wolfram_code_generator_system_prompt'
     ]
@@ -95,4 +97,31 @@ class WolframPlotSummarizer(Agent):
     Code:
     {code}
     Filename:
+    """
+
+
+class TeXGenerator(Agent):
+    def __init__(self, client: object, model: str) -> None:
+        super().__init__(client, model, SystemPrompts.tex_generator)
+
+    def template_prompt(self, prompt: str) -> str:
+        return f"""
+    Convert the following description into TeX code.
+    Description:
+    {prompt}
+    TeX:
+    """
+
+
+class TeXCodeFixer(Agent):
+    def __init__(self, client: object, model: str) -> None:
+        super().__init__(client, model, SystemPrompts.tex_code_fixer)
+
+    def template_prompt(self, code: str) -> str:
+        return f"""
+    The following TeX code produced an error during validation.
+    Analyze the error and fix the code so it is valid TeX.
+    Code:
+    {code}
+    Fixed Code:
     """

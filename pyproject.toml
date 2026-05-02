@@ -7,7 +7,10 @@ requires-python = ">=3.13"
 dependencies = [
     "ipykernel>=7.2.0",
     "ipympl>=0.10.0",
+    "notebook>=7.5.6",
     "numpy>=2.4.3",
+    "pip>=26.1",
+    "pylatexenc>=2.10",
     "pyyaml>=6.0.3",
 ]
 

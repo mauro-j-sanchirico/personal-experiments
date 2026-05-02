@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import cast
 
@@ -9,10 +10,13 @@ from dotenv import load_dotenv
 from IPython.display import Markdown, Math, display
 from openai import OpenAI
 from PIL import Image as PillowImage
+from pylatexenc.latexwalker import LatexWalker
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
 
 from pyderivehelper.agents import (
+    TeXGenerator,
+    TeXCodeFixer,
     WolframCodeFixer,
     WolframCodeGenerator,
     WolframCodeSanitizer,
@@ -63,15 +67,6 @@ _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
 # Wolfram Language configuration and constants
 # =============================================================================
 
-_WOLFRAM_LANGUAGE_FAILED_RESULT: str = 'False'
-
-
-@dataclass(frozen=True)
-class SyntaxCheckResults:
-    """Result markers used by syntax validation."""
-
-    FAILED_RESULT: str = _WOLFRAM_LANGUAGE_FAILED_RESULT
-
 
 # https://reference.wolfram.com/language/guide/DataVisualization.html
 @dataclass(frozen=True)
@@ -98,26 +93,6 @@ def print_tex(expr: str) -> None:
     display(Math(expr))
 
 
-def print_wexpr(expr: object) -> None:
-    """Display a Wolfram expression as TeX.
-
-    Args:
-        expr: The Wolfram expression to render.
-    """
-    tex_expr: str = str(ws.evaluate(wl.ToString(wl.TeXForm(expr))))
-    display(Math(tex_expr))
-
-
-def print_wresult(expr: object) -> None:
-    """Evaluate a Wolfram expression and display the result as Math via TeX.
-
-    Args:
-        expr: The Wolfram expression to evaluate.
-    """
-    clean_tex_expr = _extract_clean_tex(expr)
-    display(Math(clean_tex_expr))
-
-
 def print_wresult_tex(expr: object) -> None:
     """Evaluate a Wolfram expression and print the raw TeX result.
 
@@ -127,7 +102,7 @@ def print_wresult_tex(expr: object) -> None:
     tex_expr: str = str(
         ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
     )
-    logger.info(tex_expr)
+    display(Markdown(f'```tex\n{tex_expr}\n```'))
 
 
 # ============================================================================
@@ -163,7 +138,8 @@ def wc(expr: object) -> object:
     result: object = ws.evaluate(expr)
     save_expr_str: str = f'{_RESULT_STR} = {expr}'
     ws.evaluate(save_expr_str)
-    print_wresult(ws.evaluate(_RESULT_STR))
+    clean_tex_expr: str = _extract_mathjax_safe_tex(ws.evaluate(_RESULT_STR))
+    display(Math(clean_tex_expr))
     return result
 
 
@@ -181,64 +157,117 @@ def wnlc(
         cases.
     """
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
-
-    # Preprocessing
     prompt = _trim_leading_whitespace(prompt)
-
-    # Slash command handling
     slash_commands, prompt = _parse_slash_commands(prompt)
     if slash_commands:
         logger.info('Found slash command(s): %s', ', '.join(slash_commands))
+        for command in slash_commands:
+            slash_command_pipeline = _SLASH_COMMANDS[command]
+            slash_command_pipeline(prompt, model_str)
+    else:
+        return _wnlc_default_pipeline(prompt, model_str)
 
-    # Instantiation
-    wolfram_code_generator: WolframCodeGenerator = WolframCodeGenerator(
-        _MATH_ASSISTANT_CLIENT, model_str
-    )
-    wolfram_code_sanitizer: WolframCodeSanitizer = WolframCodeSanitizer(
-        _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
-    )
-    wolfram_code_fixer: WolframCodeFixer = WolframCodeFixer(
-        _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
-    )
 
-    # Code generation
-    logger.info('Generating Wolfram Language code...')
-    response_str: str = wolfram_code_generator.call(prompt)
+# =============================================================================
+# Pipelines
+# =============================================================================
 
-    # Code sanitization
-    logger.info('Sanitizing generated code...')
-    sanitized_response_str: str = wolfram_code_sanitizer.call(response_str)
-    logger.info('Checking syntax...')
-    if not check_syntax(sanitized_response_str):
-        _handle_syntax_error(sanitized_response_str)
-        return None
-    _display_generated_code(sanitized_response_str)
 
-    # Validation
-    logger.info('Validating code...')
-    validated_response_str = _validate_or_fix_wolfram_code(
-        sanitized_response_str, wolfram_code_fixer
+def _wnlc_code_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Pipeline for the /code slash command."""
+    logger.info('Executing /code pipeline...')
+    validated_response_str, response_str = _generate_validated_wolfram_code(
+        prompt, model_str
     )
     if not validated_response_str:
         _handle_validation_error(response_str)
         return None
+    _display_generated_code(validated_response_str)
+    return (None, validated_response_str)
 
-    # Check for plot code
-    logger.info('Checking for plot code...')
-    if check_contains_plot_code(sanitized_response_str):
-        _generate_plot_from_wolfram_code(sanitized_response_str)
+
+def _wnlc_tex_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Pipeline for the /tex slash command."""
+    logger.info('Executing /tex pipeline...')
+    validated_response_str, response_str = _generate_validated_tex_code(
+        prompt, model_str
+    )
+    if not validated_response_str:
+        _display_generated_tex(response_str)
         return None
+    _display_generated_tex(validated_response_str)
+    return (None, validated_response_str)
 
-    # Evaluation
+
+def _wnlc_mathjax_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Stub pipeline for the /mathjax slash command."""
+    logger.info('Executing /mathjax pipeline...')
+
+
+def _wnlc_run_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Stub pipeline for the /run slash command."""
+    logger.info('Executing /run pipeline...')
+
+
+def _wnlc_report_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Stub pipeline for the /report slash command."""
+    logger.info('Executing /report pipeline...')
+
+
+def _wnlc_help_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Stub pipeline for the /help slash command."""
+    logger.info('Executing /help pipeline...')
+
+
+def _wnlc_default_pipeline(
+    prompt: str, model_str: str
+) -> tuple[object, str] | None:
+    """Run the default Wolfram Language code-generation pipeline."""
+    logger.info('Executing default pipeline...')
+    validated_response_str, response_str = _generate_validated_wolfram_code(
+        prompt, model_str
+    )
+    if not validated_response_str:
+        _handle_validation_error(response_str)
+        return None
+    _display_generated_code(validated_response_str)
+    logger.info('Checking for plot code...')
+    if check_contains_plot_code(validated_response_str):
+        _generate_plot_from_wolfram_code(validated_response_str)
+        return None
     logger.info('Evaluating code...')
-    result: object = ws.evaluate(sanitized_response_str)
-
-    # Clean up
-    cleaned_tex_str: str = _extract_clean_tex(result)
-
-    # Display
-    _display_results(result, cleaned_tex_str)
+    result: object = ws.evaluate(validated_response_str)
+    cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
+    _default_display_results(result, cleaned_tex_str)
     return result, cleaned_tex_str
+
+
+# =============================================================================
+# Slash command configuration
+# =============================================================================
+
+_SlashCommandPipeline = Callable[[str, str], tuple[object, str] | None]
+
+_SLASH_COMMANDS: dict[str, _SlashCommandPipeline] = {
+    'code': _wnlc_code_pipeline,
+    'tex': _wnlc_tex_pipeline,
+    'mathjax': _wnlc_mathjax_pipeline,
+    'run': _wnlc_run_pipeline,
+    'report': _wnlc_report_pipeline,
+    'help': _wnlc_help_pipeline,
+}
 
 
 # =============================================================================
@@ -247,16 +276,73 @@ def wnlc(
 
 
 def _validate_or_fix_wolfram_code(
-    sanitized_response_str: str, wolfram_code_fixer: WolframCodeFixer
+    candidate_code: str, wolfram_code_fixer: WolframCodeFixer
 ) -> str:
     """Validate Wolfram code and try to fix it if needed."""
     for _ in range(_VALIDATION_RETRY_COUNT + 1):
-        if validate_wolfram_code(sanitized_response_str):
-            return sanitized_response_str
-        sanitized_response_str = wolfram_code_fixer.call(
-            sanitized_response_str
-        )
+        if validate_wolfram_code(candidate_code):
+            return candidate_code
+        candidate_code = wolfram_code_fixer.call(candidate_code)
     return ''
+
+
+def _validate_or_fix_tex_code(
+    candidate_code: str, tex_code_fixer: TeXCodeFixer
+) -> str:
+    """Validate TeX code and try to regenerate it if needed."""
+    for _ in range(_VALIDATION_RETRY_COUNT + 1):
+        if validate_tex_code(candidate_code):
+            return candidate_code
+        candidate_code = tex_code_fixer.call(candidate_code)
+    return ''
+
+
+def _generate_validated_wolfram_code(
+    prompt: str, model_str: str = OpenAIModels.mini
+) -> tuple[str, str]:
+    """Generate, sanitize, and validate Wolfram Language code."""
+    wolfram_code_generator: WolframCodeGenerator = WolframCodeGenerator(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+    wolfram_code_sanitizer: WolframCodeSanitizer = WolframCodeSanitizer(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+    wolfram_code_fixer: WolframCodeFixer = WolframCodeFixer(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+
+    logger.info('Generating Wolfram Language code...')
+    response_str: str = wolfram_code_generator.call(prompt)
+
+    logger.info('Sanitizing generated code...')
+    sanitized_response_str: str = wolfram_code_sanitizer.call(response_str)
+
+    logger.info('Validating code...')
+    validated_response_str: str = _validate_or_fix_wolfram_code(
+        sanitized_response_str, wolfram_code_fixer
+    )
+    return validated_response_str, response_str
+
+
+def _generate_validated_tex_code(
+    prompt: str, model_str: str = OpenAIModels.mini
+) -> tuple[str, str]:
+    """Generate, sanitize, and validate TeX code."""
+    tex_generator: TeXGenerator = TeXGenerator(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+    tex_code_fixer: TeXCodeFixer = TeXCodeFixer(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+
+    logger.info('Generating TeX code...')
+    response_str: str = tex_generator.call(prompt)
+
+    logger.info('Validating TeX code...')
+    validated_response_str: str = _validate_or_fix_tex_code(
+        response_str, tex_code_fixer
+    )
+    return validated_response_str, response_str
 
 
 def _generate_plot_from_wolfram_code(response_str: str) -> None:
@@ -279,25 +365,19 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
 # =============================================================================
 
 
-def validate_wolfram_code(sanitized_response_str):
-    result = ws.evaluate(wlexpr(f'Check[{sanitized_response_str}, $Failed]'))
+def validate_wolfram_code(candidate_wolfram_code):
+    result = ws.evaluate(wlexpr(f'Check[{candidate_wolfram_code}, $Failed]'))
     if result == wl.Symbol('$Failed'):
         return False
     return True
 
 
-def check_syntax(expr: str) -> bool:
-    """Check whether a Wolfram Language expression has valid syntax.
-
-    Args:
-        expr: The Wolfram Language expression to validate.
-
-    Returns:
-        True if the expression passes syntax validation, otherwise False.
-    """
-    valid_syntax_check_str: str = f'SyntaxQ["{expr}"]'
-    syntax_check_result: str = str(ws.evaluate(valid_syntax_check_str))
-    if SyntaxCheckResults.FAILED_RESULT in syntax_check_result:
+def validate_tex_code(latex_code: str) -> bool:
+    """Return True when pylatexenc can parse the LaTeX code."""
+    try:
+        walker = LatexWalker(latex_code)
+        walker.get_latex_nodes()
+    except Exception:
         return False
     return True
 
@@ -325,8 +405,8 @@ def check_contains_plot_code(
 # =============================================================================
 
 
-def _extract_clean_tex(result: object) -> str:
-    """Convert a Wolfram result into cleaned TeX.
+def _extract_mathjax_safe_tex(result: object) -> str:
+    """Convert a Wolfram result into cleaned TeX that will display in MathJax.
 
     Args:
         result: The Wolfram result to convert.
@@ -368,15 +448,6 @@ def _fix_fbox(tex_str: str) -> str:
     return cleaned_tex_str
 
 
-def _handle_syntax_error(response_str: str) -> None:
-    """Display syntax validation output for invalid code.
-
-    Args:
-        response_str: Wolfram Language code that failed validation.
-    """
-    _display_syntax_error(response_str)
-
-
 def _handle_validation_error(response_str: str) -> None:
     """Display validation output for code that could not be fixed."""
     logger.info('Generated response could not be validated.')
@@ -387,17 +458,6 @@ def _handle_validation_error(response_str: str) -> None:
 # =============================================================================
 # String utility functions
 # =============================================================================
-
-
-_SLASH_COMMANDS: tuple[str, ...] = (
-    'code',
-    'tex',
-    'mathjax',
-    'quiet',
-    'run',
-    'report',
-    'help',
-)
 
 _LEADING_SLASH_TOKEN_PATTERN: re.Pattern[str] = re.compile(r'/([^\s/]+)')
 _LEADING_SLASH_BLOCK_PATTERN: re.Pattern[str] = re.compile(
@@ -444,17 +504,6 @@ def _parse_slash_commands(text: str) -> tuple[list[str], str]:
 # =============================================================================
 
 
-def _display_syntax_error(response_str: str) -> None:
-    """Display an invalid-code message and the generated Wolfram code.
-
-    Args:
-        response_str: Wolfram Language code to show.
-    """
-    logger.info('Generated response is not valid Wolfram Language code.')
-    display(Markdown('\n**Invalid Wolfram Code**:\n'))
-    display(Markdown(f'```wolfram\n{response_str}\n```'))
-
-
 def _display_generated_code(response_str: str) -> None:
     """Display generated Wolfram Language code.
 
@@ -465,7 +514,13 @@ def _display_generated_code(response_str: str) -> None:
     display(Markdown(f'```wolfram\n{response_str}\n```'))
 
 
-def _display_results(result: object, cleaned_tex_str: str) -> None:
+def _display_generated_tex(response_str: str) -> None:
+    """Display generated TeX code."""
+    display(Markdown('\n**Generated TeX**:\n'))
+    display(Markdown(f'```tex\n{response_str}\n```'))
+
+
+def _default_display_results(result: object, cleaned_tex_str: str) -> None:
     """Display the evaluated result and its TeX form.
 
     Args:
