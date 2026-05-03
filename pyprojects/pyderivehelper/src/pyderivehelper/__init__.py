@@ -8,5 +8,5 @@ from pyderivehelper.wltools import (  # noqa: F401
 )
 
 logging.basicConfig(
-    level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s'
+    level=logging.WARNING, format='%(levelname)s:%(name)s:%(message)s'
 )
