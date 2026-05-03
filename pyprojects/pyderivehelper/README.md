@@ -1,6 +1,6 @@
-# PyDerive
+# PyDeriveHelper
 
-PyDerive is a lightweight wrapper to computational math and AI tools designed to facilitate performing and checking complex derivations.
+`pyderivehelper` is a set of Python tools for performing mathematical calculations using Wolfram Language in a Jupyter notebook. Interfaces are provided for entering Wolfram Code directly and via natural language descriptions through OpenAI API calls.
 
 ## Description
 

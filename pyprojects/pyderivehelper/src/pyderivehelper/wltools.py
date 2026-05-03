@@ -4,6 +4,7 @@ import re
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 from dotenv import load_dotenv
@@ -49,6 +50,7 @@ _RESULT_STR: str = _CONFIG['result_str']
 _VALIDATION_RETRY_COUNT: int = max(
     0, int(_CONFIG['wolfram_code_validation_retry_count'])
 )
+_HELP_MESSAGE_PATH: Path = Path(__file__).resolve().parents[2] / 'help_message.md'
 
 
 # =============================================================================
@@ -206,15 +208,42 @@ def _wnlc_tex_pipeline(
 def _wnlc_run_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Stub pipeline for the /run slash command."""
+    """Pipeline for the /run slash command."""
     logger.info('Executing /run pipeline...')
+    validated_response_str: str = _validate_user_wolfram_code(
+        prompt, model_str
+    )
+    if not validated_response_str:
+        _handle_wolfram_validation_error(prompt)
+        return None
+    _display_generated_code(validated_response_str)
+    logger.info('Evaluating code...')
+    result: object = ws.evaluate(validated_response_str)
+    cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
+    _default_display_results(result, cleaned_tex_str)
+    return result, cleaned_tex_str
 
 
-def _wnlc_report_pipeline(
+def _wnlc_calc_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Stub pipeline for the /report slash command."""
-    logger.info('Executing /report pipeline...')
+    """Pipeline for the /calc slash command."""
+    logger.info('Executing /calc pipeline...')
+    validated_response_str, response_str = _generate_validated_wolfram_code(
+        prompt, model_str
+    )
+    if not validated_response_str:
+        _handle_wolfram_validation_error(response_str)
+        return None
+    logger.info('Checking for plot code...')
+    if check_contains_plot_code(validated_response_str):
+        _generate_plot_from_wolfram_code(validated_response_str)
+        return None
+    logger.info('Evaluating code...')
+    result: object = ws.evaluate(validated_response_str)
+    cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
+    _display_result_only(cleaned_tex_str)
+    return result, cleaned_tex_str
 
 
 def _wnlc_help_pipeline(
@@ -222,6 +251,13 @@ def _wnlc_help_pipeline(
 ) -> tuple[object, str] | None:
     """Stub pipeline for the /help slash command."""
     logger.info('Executing /help pipeline...')
+    _display_help_message()
+    return None
+
+
+def _display_help_message() -> None:
+    """Display the slash-command help message."""
+    display(Markdown(_HELP_MESSAGE_PATH.read_text(encoding='utf-8')))
 
 
 def _wnlc_default_pipeline(
@@ -257,7 +293,7 @@ _SLASH_COMMANDS: dict[str, _SlashCommandPipeline] = {
     'code': _wnlc_code_pipeline,
     'tex': _wnlc_tex_pipeline,
     'run': _wnlc_run_pipeline,
-    'report': _wnlc_report_pipeline,
+    'calc': _wnlc_calc_pipeline,
     'help': _wnlc_help_pipeline,
 }
 
@@ -314,6 +350,27 @@ def _generate_validated_wolfram_code(
         sanitized_response_str, wolfram_code_fixer
     )
     return validated_response_str, response_str
+
+
+def _validate_user_wolfram_code(
+    candidate_code: str, model_str: str = OpenAIModels.mini
+) -> str:
+    """Sanitize and validate user-provided Wolfram Language code."""
+    wolfram_code_sanitizer: WolframCodeSanitizer = WolframCodeSanitizer(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+    wolfram_code_fixer: WolframCodeFixer = WolframCodeFixer(
+        _MATH_ASSISTANT_CLIENT, model_str
+    )
+
+    logger.info('Sanitizing user-provided code...')
+    sanitized_candidate_code: str = wolfram_code_sanitizer.call(candidate_code)
+
+    logger.info('Validating user-provided code...')
+    validated_candidate_code: str = _validate_or_fix_wolfram_code(
+        sanitized_candidate_code, wolfram_code_fixer
+    )
+    return validated_candidate_code
 
 
 def _generate_validated_tex_code(
@@ -534,6 +591,15 @@ def _default_display_results(result: object, cleaned_tex_str: str) -> None:
     display(Markdown('\n**Rendered Evaluated Result**:\n'))
     display(Markdown(f'$$\\Large {cleaned_tex_str}$$'))
     display(Markdown('---'))
+
+
+def _display_result_only(cleaned_tex_str: str) -> None:
+    """Display only the rendered evaluated result.
+
+    Args:
+        cleaned_tex_str: Cleaned TeX text for the result.
+    """
+    display(Markdown(f'$$\\Large {cleaned_tex_str}$$'))
 
 
 # =============================================================================
