@@ -1,6 +1,8 @@
 # Project-specific
 throwaway/jupyter/images/*
 !throwaway/jupyter/images/.gitkeep
+pyprojects/pyderivehelper/notebooks/images/*
+!pyprojects/pyderivehelper/notebooks/images/.gitkeep
 
 
 # Byte-compiled / optimized / DLL files
