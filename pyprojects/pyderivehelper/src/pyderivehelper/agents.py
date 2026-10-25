@@ -1,8 +1,11 @@
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 from pyderivehelper.config_file_management import load_config
 from pyderivehelper.openai_api import make_openai_api_call
+
+logger = logging.getLogger(__name__)
 
 _CONFIG: dict[str, Any] = load_config()
 
@@ -35,12 +38,14 @@ class Agent:
     def call(self, prompt: str) -> str:
         """Template a prompt and send it to the OpenAI API."""
         templated_prompt: str = self.template_prompt(prompt)
+        logger.debug('%s templated prompt: %r', type(self).__name__, templated_prompt)
         response: str = make_openai_api_call(
             self.client,
             self.model,
             self.system_prompt,
             templated_prompt,
         )
+        logger.debug('%s response: %r', type(self).__name__, response)
         return response
 
 

@@ -42,6 +42,7 @@ def set_log_level(level: str) -> None:
         level: Logging level name such as "INFO" or "DEBUG".
     """
     logger.setLevel(level.upper())
+    logging.getLogger('pyderivehelper.agents').setLevel(level.upper())
 
 
 _CONFIG: dict[str, str] = load_config()
@@ -804,6 +805,12 @@ def _expand_result_references(prompt: str) -> tuple[str, bool]:
         '\nThe substituted symbols are Wolfram Language variables holding '
         'saved results. Use them directly in the generated expression.'
     )
+    if 'result' in references:
+        expanded += (
+            '\nThe rhs variable is the previous result. Apply the requested '
+            'operation to rhs. Do not use lhs or introduce an equation unless '
+            'the description explicitly asks for one.'
+        )
     return expanded, 'bothsides' in references
 
 
