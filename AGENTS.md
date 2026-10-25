@@ -1,6 +1,8 @@
 # AGENTS.md
 
-These rules are mandatory and override default behavior.
+This is a personal repository that provides a common location to prototype, store, and reuse personal projects. It is intended to be a monorepo that multiple projects reside in with the intent of minimizing repository and environment setup overhead required to quickly prototype a new idea.
+
+The following rules override default behavior.
 
 ## 0. Human Interaction
 
@@ -28,7 +30,6 @@ These rules are mandatory and override default behavior.
 ## 3. Code Style
 
 - Use idiomatic Python.
-- Follow the Google style guide.
 - Ensure code will pass mypy and ruff checks.
 - Prefer the standard library.
 - Minimize dependencies.
@@ -50,3 +51,10 @@ When editing existing code:
 - Comment only when intent is not obvious.
 - Do not restate what the code already shows.
 - Prefer clear code over explanatory comments.
+
+## 6. Writing Style
+
+- Prefer **precise, direct, economical prose** with a professional but natural, conversational tone.
+- Favor logical structure, thoughtful transitions, and explanations that establish context, motivation, and implications.
+- Use technically dense writing when the subject warrants it, but avoid unnecessary complexity, jargon, and inflated language.
+- Employ information-rich sentences rather than oversimplifying when dense sentences are warranted.
