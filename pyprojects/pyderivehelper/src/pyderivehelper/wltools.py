@@ -140,7 +140,7 @@ def wc(expr: object) -> object:
     """
     result: object = _evaluate_and_remember(str(expr))
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
-    equation_tex_str: str = _build_equation_tex(expr, cleaned_tex_str)
+    equation_tex_str: str = _build_equation_tex(cleaned_tex_str)
     _default_display_results(result, equation_tex_str)
     return result
 
@@ -233,7 +233,7 @@ def _wnlc_run_pipeline(
     result: object = _evaluate_and_remember(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(
-        validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
+        cleaned_tex_str, unwrap_full_simplify=True
     )
     _default_display_results(result, equation_tex_str)
     return result, cleaned_tex_str
@@ -258,7 +258,7 @@ def _wnlc_calc_pipeline(
     result: object = _evaluate_and_remember(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(
-        validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
+        cleaned_tex_str, unwrap_full_simplify=True
     )
     _display_result_only(equation_tex_str)
     return result, cleaned_tex_str
@@ -298,7 +298,7 @@ def _wnlc_default_pipeline(
     result: object = _evaluate_and_remember(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(
-        validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
+        cleaned_tex_str, unwrap_full_simplify=True
     )
     _default_display_results(result, equation_tex_str)
     return result, cleaned_tex_str
@@ -566,10 +566,10 @@ def _extract_mathjax_safe_tex(result: object) -> str:
 
 
 def _build_equation_tex(
-    expr: object, result_tex: str, unwrap_full_simplify: bool = False
+    result_tex: str, unwrap_full_simplify: bool = False
 ) -> str:
-    """Format an unevaluated input and its result as a TeX equation."""
-    held_expr = wl.ToExpression(str(expr), wl.InputForm, wl.HoldComplete)
+    """Format the saved held input and its result as a TeX equation."""
+    held_expr = WLSymbol('Global`lhs')
     if unwrap_full_simplify:
         held_expr = wl.Replace(
             held_expr,
@@ -578,8 +578,15 @@ def _build_equation_tex(
     is_indefinite_integral: bool = ws.evaluate(
         wl.MatchQ(held_expr, wlexpr('HoldComplete[Integrate[_, _Symbol]]'))
     )
-    display_expr = wl.Replace(
-        held_expr, wlexpr('HoldComplete[inner_] :> HoldForm[inner]')
+    display_expr = wl.ReplaceRepeated(
+        held_expr,
+        wl.List(
+            wlexpr(
+                'HoldPattern[ReleaseHold[HoldComplete[inner_]]] :> '
+                'HoldForm[inner]'
+            ),
+            wlexpr('HoldComplete[inner_] :> HoldForm[inner]'),
+        ),
     )
     input_tex: str = str(ws.evaluate(wl.ToString(wl.TeXForm(display_expr))))
     input_tex = _fix_fbox(_fix_hypergeometric_functions(input_tex))

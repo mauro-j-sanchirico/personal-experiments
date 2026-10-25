@@ -55,6 +55,19 @@ class ResultReferenceTests(unittest.TestCase):
             wltools._evaluate_and_remember('rhs + ReleaseHold[lhs]')
             self.assertIn('ReplaceAll', str(evaluate.call_args_list[1].args[0]))
 
+    def test_equation_displays_saved_references_under_hold(self) -> None:
+        with patch.object(
+            wltools.ws, 'evaluate', side_effect=[False, 'expanded input']
+        ) as evaluate:
+            self.assertEqual(
+                wltools._build_equation_tex('9'), 'expanded input = 9'
+            )
+        display_call = str(evaluate.call_args_list[1].args[0])
+        self.assertIn('Global`lhs', display_call)
+        self.assertIn('ReplaceRepeated', display_call)
+        self.assertIn('ReleaseHold[HoldComplete', display_call)
+        self.assertIn('HoldForm', display_call)
+
     def test_references_require_history_and_honor_literal_escape(self) -> None:
         with patch.object(wltools, '_LAST_RESULT_AVAILABLE', False):
             with self.assertRaises(ValueError):
