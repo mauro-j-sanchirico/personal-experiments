@@ -141,7 +141,8 @@ def wc(expr: object) -> object:
     save_expr_str: str = f'{_RESULT_STR} = {expr}'
     ws.evaluate(save_expr_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
-    _default_display_results(result, cleaned_tex_str)
+    equation_tex_str: str = _build_equation_tex(expr, cleaned_tex_str)
+    _default_display_results(result, equation_tex_str)
     return result
 
 
@@ -220,7 +221,10 @@ def _wnlc_run_pipeline(
     logger.info('Evaluating code...')
     result: object = ws.evaluate(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
-    _default_display_results(result, cleaned_tex_str)
+    equation_tex_str: str = _build_equation_tex(
+        validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
+    )
+    _default_display_results(result, equation_tex_str)
     return result, cleaned_tex_str
 
 
@@ -242,7 +246,10 @@ def _wnlc_calc_pipeline(
     logger.info('Evaluating code...')
     result: object = ws.evaluate(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
-    _display_result_only(cleaned_tex_str)
+    equation_tex_str: str = _build_equation_tex(
+        validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
+    )
+    _display_result_only(equation_tex_str)
     return result, cleaned_tex_str
 
 
@@ -279,7 +286,10 @@ def _wnlc_default_pipeline(
     logger.info('Evaluating code...')
     result: object = ws.evaluate(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
-    _default_display_results(result, cleaned_tex_str)
+    equation_tex_str: str = _build_equation_tex(
+        validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
+    )
+    _default_display_results(result, equation_tex_str)
     return result, cleaned_tex_str
 
 
@@ -469,6 +479,29 @@ def _extract_mathjax_safe_tex(result: object) -> str:
     return cleaned_tex_str
 
 
+def _build_equation_tex(
+    expr: object, result_tex: str, unwrap_full_simplify: bool = False
+) -> str:
+    """Format an unevaluated input and its result as a TeX equation."""
+    held_expr = wl.ToExpression(str(expr), wl.InputForm, wl.HoldComplete)
+    if unwrap_full_simplify:
+        held_expr = wl.Replace(
+            held_expr,
+            wlexpr('HoldComplete[FullSimplify[inner_]] :> HoldComplete[inner]'),
+        )
+    is_indefinite_integral: bool = ws.evaluate(
+        wl.MatchQ(held_expr, wlexpr('HoldComplete[Integrate[_, _Symbol]]'))
+    )
+    display_expr = wl.Replace(
+        held_expr, wlexpr('HoldComplete[inner_] :> HoldForm[inner]')
+    )
+    input_tex: str = str(ws.evaluate(wl.ToString(wl.TeXForm(display_expr))))
+    input_tex = _fix_fbox(_fix_hypergeometric_functions(input_tex))
+    if is_indefinite_integral:
+        result_tex = f'{result_tex} + C'
+    return f'{input_tex} = {result_tex}'
+
+
 def _fix_hypergeometric_functions(tex_str: str) -> str:
     """Fix Wolfram's hypergeometric TeX output for notebook rendering.
 
@@ -576,30 +609,30 @@ def _display_generated_tex(response_str: str) -> None:
     display(Markdown(f'```tex\n{response_str}\n```'))
 
 
-def _default_display_results(result: object, cleaned_tex_str: str) -> None:
-    """Display the evaluated result and its TeX form.
+def _default_display_results(result: object, equation_tex_str: str) -> None:
+    """Display the evaluated result and its TeX equation.
 
     Args:
         result: The evaluated Wolfram result.
-        cleaned_tex_str: Cleaned TeX text for the result.
+        equation_tex_str: TeX equation containing the input and result.
     """
     display(Markdown('\n**Raw Evaluated Result**:\n'))
     display(Markdown(f'```plaintext\n{result!s}\n```'))
     display(Markdown('\n**Raw TeX**:\n'))
-    display(Markdown(f'```tex\n{cleaned_tex_str}\n```'))
+    display(Markdown(f'```tex\n{equation_tex_str}\n```'))
     display(Markdown('---'))
-    display(Markdown('\n**Rendered Evaluated Result**:\n'))
-    display(Markdown(f'$$\\Large {cleaned_tex_str}$$'))
+    display(Markdown('\n**Rendered Equation**:\n'))
+    display(Markdown(f'$$\\Large {equation_tex_str}$$'))
     display(Markdown('---'))
 
 
-def _display_result_only(cleaned_tex_str: str) -> None:
-    """Display only the rendered evaluated result.
+def _display_result_only(equation_tex_str: str) -> None:
+    """Display only the rendered equation.
 
     Args:
-        cleaned_tex_str: Cleaned TeX text for the result.
+        equation_tex_str: TeX equation containing the input and result.
     """
-    display(Markdown(f'$$\\Large {cleaned_tex_str}$$'))
+    display(Markdown(f'$$\\Large {equation_tex_str}$$'))
 
 
 # =============================================================================
