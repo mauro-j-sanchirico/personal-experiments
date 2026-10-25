@@ -57,6 +57,20 @@ From this directory, run the test suite with:
 uv run pytest
 ```
 
+To run with coverage report, use
+
+```bash
+uv run pytest --cov=pyderivehelper
+```
+
+or
+
+```bash
+uv run pytest --cov=pyderivehelper --cov-report=term-missing tests
+```
+
+to report missing tests.
+
 ## Usage
 
 Use `/saveas !name` to save a calculation's result in the current Wolfram
