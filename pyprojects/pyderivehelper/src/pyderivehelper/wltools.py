@@ -9,7 +9,7 @@ from typing import cast
 
 from dotenv import load_dotenv
 from IPython.display import Markdown, Math, display
-from openai import OpenAI
+from openai import APIConnectionError, OpenAI
 from PIL import Image as PillowImage
 from pylatexenc.latexwalker import LatexWalker
 from wolframclient.evaluation import WolframLanguageSession
@@ -178,7 +178,7 @@ def wnlc(
 
     Returns:
         The Wolfram result and cleaned TeX output, or None for plot, syntax,
-        or kernel startup failures.
+        kernel startup, or OpenAI connection failures.
     """
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
     prompt = _trim_leading_whitespace(prompt)
@@ -209,31 +209,39 @@ def wnlc(
     both_sides = False
     if natural_language:
         prompt, both_sides = _expand_result_references(prompt)
-    if both_sides:
-        if 'code' in slash_commands:
-            raise ValueError('!bothsides requires an evaluating pipeline')
-        result = _wnlc_both_sides_pipeline(
-            prompt, model_str, compact='calc' in slash_commands,
-            show_code=show_code, show_tex=show_tex,
-        )
-        _save_results_if_successful(save_names, result)
-        return result
-    if show_code or show_tex:
-        result = _wnlc_calc_pipeline(
-            prompt, model_str, show_code=show_code, show_tex=show_tex
-        )
-        _save_results_if_successful(save_names, result)
+    try:
+        if both_sides:
+            if 'code' in slash_commands:
+                raise ValueError('!bothsides requires an evaluating pipeline')
+            result = _wnlc_both_sides_pipeline(
+                prompt, model_str, compact='calc' in slash_commands,
+                show_code=show_code, show_tex=show_tex,
+            )
+            _save_results_if_successful(save_names, result)
+            return result
+        if show_code or show_tex:
+            result = _wnlc_calc_pipeline(
+                prompt, model_str, show_code=show_code, show_tex=show_tex
+            )
+            _save_results_if_successful(save_names, result)
+            return None
+        if slash_commands:
+            logger.info('Found slash command(s): %s', ', '.join(slash_commands))
+            for command in slash_commands:
+                slash_command_pipeline = _SLASH_COMMANDS[command]
+                result = slash_command_pipeline(prompt, model_str)
+            _save_results_if_successful(save_names, result)
+        else:
+            result = _wnlc_default_pipeline(prompt, model_str)
+            _save_results_if_successful(save_names, result)
+            return result
+    except APIConnectionError:
+        logger.debug('OpenAI API connection failed', exc_info=True)
+        display(Markdown(
+            '**Could not reach OpenAI.** Check your connection and try again. '
+            'If you are connected, check your proxy or firewall settings.'
+        ))
         return None
-    if slash_commands:
-        logger.info('Found slash command(s): %s', ', '.join(slash_commands))
-        for command in slash_commands:
-            slash_command_pipeline = _SLASH_COMMANDS[command]
-            result = slash_command_pipeline(prompt, model_str)
-        _save_results_if_successful(save_names, result)
-    else:
-        result = _wnlc_default_pipeline(prompt, model_str)
-        _save_results_if_successful(save_names, result)
-        return result
 
 
 # =============================================================================

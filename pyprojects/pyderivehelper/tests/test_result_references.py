@@ -2,6 +2,9 @@ import os
 import unittest
 from unittest.mock import patch
 
+from httpx2 import Request
+from openai import APIConnectionError
+
 os.environ.setdefault('OPENAI_PERSONAL_MATH_ASSISTANT', 'test-key')
 
 from pyderivehelper import wltools  # noqa: E402
@@ -31,6 +34,19 @@ class ResultReferenceTests(unittest.TestCase):
         generate.assert_not_called()
         self.assertEqual(display.call_count, 2)
         self.assertIn('could not start', display.call_args.args[0].data)
+
+    def test_openai_connection_failure_displays_message(self) -> None:
+        error = APIConnectionError(
+            request=Request('POST', 'https://api.openai.com/v1/responses')
+        )
+        with (
+            patch.object(wltools, '_wnlc_default_pipeline', side_effect=error),
+            patch.object(wltools, 'display') as display,
+        ):
+            self.assertIsNone(wltools.wnlc('Take the derivative of sin(x)'))
+
+        display.assert_called_once()
+        self.assertIn('Could not reach OpenAI', display.call_args.args[0].data)
 
     def test_help_and_tex_skip_kernel_start(self) -> None:
         with (
