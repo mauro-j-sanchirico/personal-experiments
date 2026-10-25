@@ -44,6 +44,12 @@ Generate an API key.
 
 ## Installation
 
+From this directory, run `uv sync`. This installs `pyderivehelper` in editable
+mode in `.venv`.
+
+In the notebook, select this project's `.venv` Python interpreter as the kernel
+(`.venv/Scripts/python.exe` on Windows or `.venv/bin/python` on Unix).
+
 ## Usage
 
 ## License

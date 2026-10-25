@@ -11,10 +11,14 @@ dependencies = [
     "numpy>=2.4.3",
     "pip>=26.1",
     "pylatexenc>=2.10",
+    "pyderivehelper",
     "pyyaml>=6.0.3",
 ]
 
+[tool.uv.sources]
+pyderivehelper = { workspace = true }
+
 [tool.uv.workspace]
 members = [
-    "pyderivehelper",
+    "pyprojects/pyderivehelper",
 ]
