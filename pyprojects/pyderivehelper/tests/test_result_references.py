@@ -8,6 +8,45 @@ from pyderivehelper import wltools  # noqa: E402
 
 
 class ResultReferenceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        start_patcher = patch.object(wltools.ws, 'start')
+        start_patcher.start()
+        self.addCleanup(start_patcher.stop)
+
+    def test_kernel_start_failure_is_displayed_before_work(self) -> None:
+        with (
+            patch.object(
+                wltools.ws, 'start',
+                side_effect=wltools.WolframKernelException('startup failed'),
+            ) as start,
+            patch.object(wltools, 'display') as display,
+            patch.object(wltools, '_evaluate_and_remember') as evaluate,
+            patch.object(wltools, '_generate_validated_wolfram_code') as generate,
+        ):
+            self.assertIsNone(wltools.wc('1+1'))
+            self.assertIsNone(wltools.wnlc('/calc add one and one'))
+
+        self.assertEqual(start.call_count, 2)
+        evaluate.assert_not_called()
+        generate.assert_not_called()
+        self.assertEqual(display.call_count, 2)
+        self.assertIn('could not start', display.call_args.args[0].data)
+
+    def test_help_and_tex_skip_kernel_start(self) -> None:
+        with (
+            patch.object(wltools.ws, 'start') as start,
+            patch.object(wltools, '_display_help_message'),
+            patch.object(
+                wltools, '_generate_validated_tex_code',
+                return_value=('x^2', 'x^2'),
+            ),
+            patch.object(wltools, '_display_generated_tex'),
+        ):
+            self.assertIsNone(wltools.wnlc('/help'))
+            self.assertIsNone(wltools.wnlc('/tex x squared'))
+
+        start.assert_not_called()
+
     def test_wc_evaluates_once_and_updates_both_symbols(self) -> None:
         with (
             patch.object(

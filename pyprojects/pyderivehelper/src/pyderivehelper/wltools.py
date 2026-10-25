@@ -13,6 +13,7 @@ from openai import OpenAI
 from PIL import Image as PillowImage
 from pylatexenc.latexwalker import LatexWalker
 from wolframclient.evaluation import WolframLanguageSession
+from wolframclient.exception import WolframKernelException
 from wolframclient.language import wl, wlexpr
 from wolframclient.language.expression import WLSymbol
 
@@ -68,6 +69,22 @@ _NO_LEFT_RESULT = object()
 _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
     api_key=os.environ[_OPENAI_API_KEY_ENV_VAR]
 )
+
+
+def _start_wolfram_session() -> bool:
+    """Start the kernel and report startup failures in the notebook."""
+    try:
+        ws.start()
+    except WolframKernelException:
+        logger.debug('Wolfram kernel startup failed', exc_info=True)
+        display(Markdown(
+            '**Wolfram Engine could not start.** Your license may already '
+            'be using all available kernel sessions. Shut down an unused '
+            'Jupyter kernel and try again. If this persists, check your '
+            'Wolfram Engine license or installation.'
+        ))
+        return False
+    return True
 
 
 # =============================================================================
@@ -139,8 +156,10 @@ def wc(expr: object) -> object:
         expr: The Wolfram expression to evaluate.
 
     Returns:
-        The evaluated Wolfram result.
+        The evaluated Wolfram result, or None if the kernel cannot start.
     """
+    if not _start_wolfram_session():
+        return None
     result: object = _evaluate_and_remember(str(expr))
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(cleaned_tex_str)
@@ -158,8 +177,8 @@ def wnlc(
         model_str: OpenAI model name used for code generation.
 
     Returns:
-        The Wolfram result and cleaned TeX output, or None for plot or syntax
-        cases.
+        The Wolfram result and cleaned TeX output, or None for plot, syntax,
+        or kernel startup failures.
     """
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
     prompt = _trim_leading_whitespace(prompt)
@@ -179,6 +198,11 @@ def wnlc(
         ):
             raise ValueError('/showcode and /showtex require /calc')
         slash_commands = ['calc']
+    if (
+        not slash_commands
+        or any(command not in {'help', 'tex'} for command in slash_commands)
+    ) and not _start_wolfram_session():
+        return None
     natural_language = not slash_commands or all(
         command in {'code', 'calc'} for command in slash_commands
     )
