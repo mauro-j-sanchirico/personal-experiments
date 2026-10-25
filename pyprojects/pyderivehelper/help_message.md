@@ -10,7 +10,7 @@ The following pipelines are provided:
 - `/code` generates Wolfram Language code but does not run it.
 - `/tex` generates TeX but does not run anything.
 - `/run` runs Wolfram Language code supplied directly.
-- `/calc` generates and runs Wolfram Language code, then shows only the final rendered result.
+- `/calc` generates and runs Wolfram Language code, then shows only the rendered equation.
 - `/help` shows this message.
 
 ### Default Pipeline
@@ -41,7 +41,7 @@ When the `/run` command prefaces a prompt, WNLC validates supplied code, attempt
 
 Use `/calc` for a compact answer from a plain-language prompt.
 
-When the `/calc` command prefaces a prompt, WNLC generates and checks Wolfram Language code, then runs it. For ordinary results, it shows only the final rendered math. If the result is a plot, WNLC renders the plot image instead. If the generated code cannot be repaired, WNLC shows the failed code instead of running it.
+When the `/calc` command prefaces a prompt, WNLC generates and checks Wolfram Language code, then runs it. For ordinary results, it shows only the rendered input and result as an equation. If the result is a plot, WNLC renders the plot image instead. If the generated code cannot be repaired, WNLC shows the failed code instead of running it.
 
 ### `/help` Pipeline
 
