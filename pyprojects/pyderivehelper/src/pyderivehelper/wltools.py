@@ -161,6 +161,16 @@ def wnlc(
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
     prompt = _trim_leading_whitespace(prompt)
     slash_commands, prompt = _parse_slash_commands(prompt)
+    show_code = 'showcode' in slash_commands
+    show_tex = 'showtex' in slash_commands
+    if show_code or show_tex:
+        valid_commands = {'calc', 'showcode', 'showtex'}
+        if (
+            'calc' not in slash_commands
+            or not set(slash_commands) <= valid_commands
+        ):
+            raise ValueError('/showcode and /showtex require /calc')
+        slash_commands = ['calc']
     natural_language = not slash_commands or all(
         command in {'code', 'calc'} for command in slash_commands
     )
@@ -171,8 +181,14 @@ def wnlc(
         if 'code' in slash_commands:
             raise ValueError('!bothsides requires an evaluating pipeline')
         return _wnlc_both_sides_pipeline(
-            prompt, model_str, compact='calc' in slash_commands
+            prompt, model_str, compact='calc' in slash_commands,
+            show_code=show_code, show_tex=show_tex,
         )
+    if show_code or show_tex:
+        _wnlc_calc_pipeline(
+            prompt, model_str, show_code=show_code, show_tex=show_tex
+        )
+        return None
     if slash_commands:
         logger.info('Found slash command(s): %s', ', '.join(slash_commands))
         for command in slash_commands:
@@ -240,7 +256,7 @@ def _wnlc_run_pipeline(
 
 
 def _wnlc_calc_pipeline(
-    prompt: str, model_str: str
+    prompt: str, model_str: str, show_code: bool = False, show_tex: bool = False
 ) -> tuple[object, str] | None:
     """Pipeline for the /calc slash command."""
     logger.info('Executing /calc pipeline...')
@@ -250,6 +266,8 @@ def _wnlc_calc_pipeline(
     if not validated_response_str:
         _handle_wolfram_validation_error(response_str)
         return None
+    if show_code:
+        _display_generated_code(validated_response_str)
     logger.info('Checking for plot code...')
     if check_contains_plot_code(validated_response_str):
         _generate_plot_from_wolfram_code(validated_response_str)
@@ -260,6 +278,8 @@ def _wnlc_calc_pipeline(
     equation_tex_str: str = _build_equation_tex(
         cleaned_tex_str, unwrap_full_simplify=True
     )
+    if show_tex:
+        _display_generated_tex(equation_tex_str)
     _display_result_only(equation_tex_str)
     return result, cleaned_tex_str
 
@@ -305,7 +325,8 @@ def _wnlc_default_pipeline(
 
 
 def _wnlc_both_sides_pipeline(
-    prompt: str, model_str: str, compact: bool = False
+    prompt: str, model_str: str, compact: bool = False,
+    show_code: bool = False, show_tex: bool = False,
 ) -> tuple[object, str] | None:
     """Apply one generated operation to each side of the previous result."""
     code, response = _generate_validated_wolfram_code(prompt, model_str)
@@ -317,7 +338,7 @@ def _wnlc_both_sides_pipeline(
     if check_contains_plot_code(code):
         raise ValueError('!bothsides does not support plot operations')
     left_code = f'With[{{rhs = ReleaseHold[lhs]}}, {code}]'
-    if not compact:
+    if not compact or show_code:
         _display_generated_code(f'{left_code}\n{code}')
     left_result = ws.evaluate(wlexpr(left_code))
     if left_result == WLSymbol('$Failed'):
@@ -331,6 +352,8 @@ def _wnlc_both_sides_pipeline(
         f'{_extract_mathjax_safe_tex(left_result)} = '
         f'{_extract_mathjax_safe_tex(right_result)}'
     )
+    if show_tex:
+        _display_generated_tex(equation_tex)
     if compact:
         _display_result_only(equation_tex)
     else:
@@ -392,6 +415,7 @@ _SLASH_COMMANDS: dict[str, _SlashCommandPipeline] = {
     'calc': _wnlc_calc_pipeline,
     'help': _wnlc_help_pipeline,
 }
+_DISPLAY_OPTIONS = {'showcode', 'showtex'}
 
 
 # =============================================================================
@@ -694,7 +718,7 @@ def _parse_slash_commands(text: str) -> tuple[list[str], str]:
     valid_commands: list[str] = []
     for command_match in _LEADING_SLASH_TOKEN_PATTERN.finditer(match.group(0)):
         command_name: str = command_match.group(1)
-        if command_name not in _SLASH_COMMANDS:
+        if command_name not in _SLASH_COMMANDS and command_name not in _DISPLAY_OPTIONS:
             logger.error(
                 'Unknown slash command /%s. Any subsequent slash commands '
                 'were ignored.',

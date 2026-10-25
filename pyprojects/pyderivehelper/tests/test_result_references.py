@@ -91,14 +91,19 @@ class ResultReferenceTests(unittest.TestCase):
                 wltools, '_evaluate_and_remember', return_value=3
             ) as remember,
             patch.object(wltools, '_extract_mathjax_safe_tex', return_value='3'),
+            patch.object(wltools, '_display_generated_code') as display_code,
+            patch.object(wltools, '_display_generated_tex') as display_tex,
             patch.object(wltools, '_display_result_only') as display_result,
         ):
             result = wltools._wnlc_both_sides_pipeline(
-                'Integrate rhs', 'model', True
+                'Integrate rhs', 'model', True,
+                show_code=True, show_tex=True,
             )
             self.assertEqual(result, ((3, 3), '3 = 3'))
             self.assertIn('ReleaseHold[lhs]', str(evaluate.call_args.args[0]))
             remember.assert_called_once_with('Integrate[rhs, x]', 3)
+            self.assertIn('Integrate[rhs, x]', display_code.call_args.args[0])
+            display_tex.assert_called_once_with('3 = 3')
             display_result.assert_called_once_with('3 = 3')
 
     def test_wnlc_routes_both_sides_reference(self) -> None:
@@ -122,6 +127,83 @@ class ResultReferenceTests(unittest.TestCase):
         ):
             self.assertEqual(wltools.wnlc('Integrate !result'), (2, '2'))
             self.assertIn('Integrate rhs', pipeline.call_args.args[0])
+
+    def test_calc_display_options_preserve_result_reference(self) -> None:
+        with (
+            patch.object(wltools, '_LAST_RESULT_AVAILABLE', True),
+            patch.object(
+                wltools, '_wnlc_calc_pipeline', return_value=(2, '2')
+            ) as pipeline,
+        ):
+            result = wltools.wnlc('/showtex /calc /showcode Integrate !result')
+            self.assertIsNone(result)
+            self.assertIn('Integrate rhs', pipeline.call_args.args[0])
+            self.assertEqual(
+                pipeline.call_args.kwargs, {'show_code': True, 'show_tex': True}
+            )
+
+    def test_calc_display_options_reuse_generated_output(self) -> None:
+        with (
+            patch.object(
+                wltools, '_generate_validated_wolfram_code',
+                return_value=('Integrate[rhs, x]', 'Integrate[rhs, x]'),
+            ) as generate,
+            patch.object(wltools, 'check_contains_plot_code', return_value=False),
+            patch.object(
+                wltools, '_evaluate_and_remember', return_value='result'
+            ) as evaluate,
+            patch.object(wltools, '_extract_mathjax_safe_tex', return_value='x'),
+            patch.object(wltools, '_build_equation_tex', return_value='I = x'),
+            patch.object(wltools, '_display_generated_code') as display_code,
+            patch.object(wltools, '_display_generated_tex') as display_tex,
+            patch.object(wltools, '_display_result_only') as display_result,
+        ):
+            result = wltools._wnlc_calc_pipeline(
+                'Integrate rhs', 'model', show_code=True, show_tex=True
+            )
+            self.assertEqual(result, ('result', 'x'))
+            generate.assert_called_once_with('Integrate rhs', 'model')
+            evaluate.assert_called_once_with('Integrate[rhs, x]')
+            display_code.assert_called_once_with('Integrate[rhs, x]')
+            display_tex.assert_called_once_with('I = x')
+            display_result.assert_called_once_with('I = x')
+
+    def test_calc_display_options_apply_to_both_sides(self) -> None:
+        with (
+            patch.object(wltools, '_LAST_RESULT_AVAILABLE', True),
+            patch.object(
+                wltools, '_wnlc_both_sides_pipeline', return_value=((1, 1), '1 = 1')
+            ) as pipeline,
+        ):
+            wltools.wnlc('/calc /showcode /showtex Integrate !bothsides')
+            self.assertIn('Integrate rhs', pipeline.call_args.args[0])
+            self.assertEqual(
+                pipeline.call_args.kwargs,
+                {'compact': True, 'show_code': True, 'show_tex': True},
+            )
+
+    def test_calc_display_options_require_calc(self) -> None:
+        for prompt in ('/showcode Integrate x', '/calc /tex /showtex Integrate x'):
+            with self.subTest(prompt=prompt), self.assertRaises(ValueError):
+                wltools.wnlc(prompt)
+
+    def test_showtex_does_not_display_equation_for_plot(self) -> None:
+        with (
+            patch.object(
+                wltools, '_generate_validated_wolfram_code',
+                return_value=('Plot[x, {x, 0, 1}]', 'Plot[x, {x, 0, 1}]'),
+            ),
+            patch.object(wltools, 'check_contains_plot_code', return_value=True),
+            patch.object(wltools, '_generate_plot_from_wolfram_code') as plot,
+            patch.object(wltools, '_display_generated_code') as display_code,
+            patch.object(wltools, '_display_generated_tex') as display_tex,
+        ):
+            wltools._wnlc_calc_pipeline(
+                'Plot x', 'model', show_code=True, show_tex=True
+            )
+            display_code.assert_called_once_with('Plot[x, {x, 0, 1}]')
+            plot.assert_called_once_with('Plot[x, {x, 0, 1}]')
+            display_tex.assert_not_called()
 
 
 if __name__ == '__main__':
