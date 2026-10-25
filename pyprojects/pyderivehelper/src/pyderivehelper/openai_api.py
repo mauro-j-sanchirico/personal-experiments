@@ -1,14 +1,19 @@
+"""Define model aliases and a shared OpenAI Responses API helper."""
+
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class OpenAIModels:
+    """Model identifiers used by the package's generation and repair agents."""
+
     nano: str = 'gpt-5.4-nano'
     mini: str = 'gpt-5.4-mini'
     full: str = 'gpt-5.4'
 
 
 def make_openai_api_call(client, model, system_prompt, prompt_template):
+    """Send system and user prompts and return stripped response text."""
     response = client.responses.create(
         model=model,
         temperature=0,

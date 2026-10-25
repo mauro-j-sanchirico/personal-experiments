@@ -1,3 +1,9 @@
+"""Provide notebook calculations, result references, plotting, and TeX display.
+
+Configuration, .env values, the shared Wolfram session, and the OpenAI client
+are initialized at import time; saved results belong to the current session.
+"""
+
 import logging
 import os
 import re
@@ -36,10 +42,18 @@ logger = logging.getLogger(__name__)
 
 
 def set_log_level(level: str) -> None:
-    """Set this module's logger level.
+    """Set the logging level for Wolfram tools and OpenAI agents.
 
     Args:
-        level: Logging level name such as "INFO" or "DEBUG".
+        level: Case-insensitive logging level name, such as "INFO" or "DEBUG".
+
+    Raises:
+        ValueError: If the uppercased name is not a registered logging level.
+
+    Examples:
+        Enable diagnostic messages in the notebook::
+
+            set_log_level('DEBUG')
     """
     logger.setLevel(level.upper())
     logging.getLogger('pyderivehelper.agents').setLevel(level.upper())
@@ -108,19 +122,39 @@ class PlotCommands:
 
 
 def print_tex(expr: str) -> None:
-    """Display a raw TeX expression.
+    """Render a TeX math expression in the notebook.
+
+    Sends the expression directly to IPython's math display. Rendering depends
+    on the notebook frontend's TeX support; the expression is not validated.
 
     Args:
-        expr: The TeX expression to render.
+        expr: TeX math source without surrounding math delimiters.
+
+    Examples:
+        Display a squared variable::
+
+            print_tex('x^2')
     """
     display(Math(expr))
 
 
 def print_wresult_tex(expr: object) -> None:
-    """Evaluate a Wolfram expression and print the raw TeX result.
+    """Evaluate a Wolfram expression and display its result as TeX source.
+
+    Uses the shared Wolfram session to evaluate the expression and convert its
+    result with TeXForm. Displays the source in a fenced TeX code block without
+    applying the package's MathJax cleanup or rendering an equation. Evaluation
+    can change session state; this helper does not save lhs or rhs. Evaluation
+    and display exceptions propagate to the caller.
 
     Args:
-        expr: The Wolfram expression to evaluate.
+        expr: Wolfram Language source or an expression object accepted by
+            the shared session's evaluate method.
+
+    Examples:
+        Display the TeX source of an expanded polynomial::
+
+            print_wresult_tex('Expand[(x + 1)^2]')
     """
     tex_expr: str = str(
         ws.evaluate(wl.ToString(wl.TeXForm(ws.evaluate(expr))))
@@ -134,11 +168,25 @@ def print_wresult_tex(expr: object) -> None:
 
 
 def wplot(filename: str, command: str) -> None:
-    """Render a Wolfram Language plot from a saved image file.
+    """Export a Wolfram Language plot to an image and display it in the notebook.
+
+    Uses the shared Wolfram session and leaves the exported image on disk.
+    An existing file at the destination may be overwritten.
 
     Args:
-        filename: Path to the image file to display.
+        filename: Destination image path, including its format extension.
+            The parent directory must exist. Use forward slashes on Windows
+            and a path that can be embedded in a Wolfram string literal.
         command: Wolfram Language plot expression to export.
+
+    Raises:
+        OSError: If the exported image is missing, unreadable, or cannot be
+            identified by Pillow.
+
+    Examples:
+        Export a PNG in the current working directory::
+
+            wplot('sine.png', 'Plot[Sin[x], {x, 0, 2 Pi}]')
     """
     export_expr: str = f'Export["{filename}", {command}]'
     ws.evaluate(export_expr)
@@ -147,15 +195,28 @@ def wplot(filename: str, command: str) -> None:
 
 
 def wc(expr: object) -> object:
-    """Evaluate a Wolfram expression, store it, and print the result.
+    """Evaluate a Wolfram expression and display its result and equation.
 
-    The input is stored as held `lhs`; its evaluated value is stored as `rhs`.
+    Starts the shared Wolfram session if needed and evaluates the input
+    directly, without calling OpenAI. Displays the raw result, the equation's
+    TeX source, and the rendered equation in the notebook. Unless evaluation
+    returns $Failed, saves the held input as lhs and the evaluated output as
+    rhs for subsequent calculations.
 
     Args:
-        expr: The Wolfram expression to evaluate.
+        expr: Wolfram Language source, or an object whose string representation
+            is valid Wolfram Language source.
 
     Returns:
-        The evaluated Wolfram result, or None if the kernel cannot start.
+        The evaluated Wolfram result, including the $Failed symbol if returned
+        by evaluation. Returns None and displays a message if the kernel cannot
+        start. Other evaluation and display exceptions propagate to the caller.
+
+    Examples:
+        Expand a polynomial, then square the saved result::
+
+            wc('Expand[(x + 1)^2]')
+            wc('rhs^2')
     """
     if not _start_wolfram_session():
         return None
@@ -169,15 +230,64 @@ def wc(expr: object) -> object:
 def wnlc(
     prompt: str, model_str: str = OpenAIModels.mini
 ) -> tuple[object, str] | None:
-    """Generate, validate, and evaluate Wolfram Language code.
+    """Run a natural-language calculation or a notebook slash-command pipeline.
+
+    By default, generates, sanitizes, validates, and evaluates Wolfram Language
+    code through OpenAI and the shared Wolfram session. Displays the generated
+    code, raw result, equation TeX, and rendered equation. The default and
+    /calc pipelines export recognized plots as images instead; those files
+    remain in the configured plot directory.
 
     Args:
-        prompt: Natural-language description of the desired computation.
-        model_str: OpenAI model name used for code generation.
+        prompt: Natural-language request, optionally prefixed with /calc for
+            compact output, /code for validated code, /tex for TeX source,
+            /run for supplied Wolfram code, or /help for command help. Add
+            /showcode and /showtex only with /calc. In default, /calc, or /code
+            prompts, !result refers to the previous output and !name to a
+            saved result; !bothsides applies an operation to both sides of the
+            previous equation in default or /calc prompts. Use !!name for a
+            literal reference token. Add /saveas !name to an evaluating prompt
+            to save its result; multiple names may follow one /saveas command.
+        model_str: Model used for generation, sanitization, and repair.
+            Defaults to OpenAIModels.mini. Plot filenames always use
+            OpenAIModels.mini, regardless of this argument.
 
     Returns:
-        The Wolfram result and cleaned TeX output, or None for plot, syntax,
-        kernel startup, or OpenAI connection failures.
+        For a non-plot default calculation, (result, result_tex), where the TeX
+        describes the result alone. For !bothsides, returns
+        ((left_result, right_result), equation_tex), including with /calc.
+        Ordinary slash-command calls return None. Plot output, exhausted
+        validation attempts, failed !bothsides evaluations, kernel startup
+        failures, and handled OpenAI connection failures also return None.
+
+    Raises:
+        ValueError: If display options or result references are incompatible,
+            a reference is unavailable, saved names are invalid, or /saveas
+            lacks a successful non-plot calculation. Also raised if generated
+            !bothsides code omits the reference or contains a plot operation.
+
+    Notes:
+        Wolfram validation evaluates candidate code, including with /code, so
+        it can change session state and code may run more than once. /run sends
+        supplied code to OpenAI for sanitization before evaluation. /tex and
+        /help do not start the Wolfram kernel.
+
+        Successful calculations update held lhs and evaluated rhs. With
+        !bothsides, these become the left and right results; /saveas saves the
+        right result. Default and /calc plot exports do not update them.
+        Saved names are case-sensitive ASCII letters and digits, starting with
+        a letter; result, bothsides, lhs, and rhs are reserved. Reusing a name
+        overwrites its Wolfram variable. Results last for the current session.
+
+        Kernel startup and OpenAI connection failures display a message;
+        other API, evaluation, and file errors propagate to the caller.
+
+    Examples:
+        Calculate, save, and reuse a result::
+
+            wnlc('Expand (x + 1)^2 /saveas !poly')
+            wnlc('/calc /showtex Differentiate !poly with respect to x')
+            wnlc('/help')
     """
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
     prompt = _trim_leading_whitespace(prompt)
@@ -251,7 +361,7 @@ def wnlc(
 def _wnlc_code_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Pipeline for the /code slash command."""
+    """Generate, validate, and display Wolfram code for /code."""
     logger.info('Executing /code pipeline...')
     validated_response_str, response_str = _generate_validated_wolfram_code(
         prompt, model_str
@@ -266,7 +376,7 @@ def _wnlc_code_pipeline(
 def _wnlc_tex_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Pipeline for the /tex slash command."""
+    """Generate, validate, and display TeX source for /tex."""
     logger.info('Executing /tex pipeline...')
     validated_response_str, response_str = _generate_validated_tex_code(
         prompt, model_str
@@ -281,7 +391,7 @@ def _wnlc_tex_pipeline(
 def _wnlc_run_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Pipeline for the /run slash command."""
+    """Sanitize, validate, and evaluate supplied code with full result output."""
     logger.info('Executing /run pipeline...')
     validated_response_str: str = _validate_user_wolfram_code(
         prompt, model_str
@@ -303,7 +413,7 @@ def _wnlc_run_pipeline(
 def _wnlc_calc_pipeline(
     prompt: str, model_str: str, show_code: bool = False, show_tex: bool = False
 ) -> tuple[object, str] | None:
-    """Pipeline for the /calc slash command."""
+    """Generate and evaluate code with compact equation or plot output."""
     logger.info('Executing /calc pipeline...')
     validated_response_str, response_str = _generate_validated_wolfram_code(
         prompt, model_str
@@ -332,7 +442,7 @@ def _wnlc_calc_pipeline(
 def _wnlc_help_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Stub pipeline for the /help slash command."""
+    """Display command help, ignoring the supplied prompt and model."""
     logger.info('Executing /help pipeline...')
     _display_help_message()
     return None
@@ -346,7 +456,7 @@ def _display_help_message() -> None:
 def _wnlc_default_pipeline(
     prompt: str, model_str: str
 ) -> tuple[object, str] | None:
-    """Run the default Wolfram Language code-generation pipeline."""
+    """Generate and evaluate code, displaying code and full results or a plot."""
     logger.info('Executing default pipeline...')
     validated_response_str, response_str = _generate_validated_wolfram_code(
         prompt, model_str
@@ -409,7 +519,7 @@ def _wnlc_both_sides_pipeline(
 def _evaluate_and_remember(
     expr: str, left_result: object = _NO_LEFT_RESULT
 ) -> object:
-    """Evaluate once, then save held lhs and evaluated rhs in Wolfram."""
+    """Evaluate once and update held lhs and evaluated rhs unless $Failed."""
     global _LAST_RESULT_AVAILABLE
     result = ws.evaluate(wlexpr(f'PyDeriveHelper`pending = ({expr})'))
     if result == WLSymbol('$Failed'):
@@ -486,7 +596,7 @@ _DISPLAY_OPTIONS = {'showcode', 'showtex'}
 def _validate_or_fix_wolfram_code(
     candidate_code: str, wolfram_code_fixer: WolframCodeFixer
 ) -> str:
-    """Validate Wolfram code and try to fix it if needed."""
+    """Validate and repair Wolfram code, returning an empty string on failure."""
     for _ in range(_VALIDATION_RETRY_COUNT + 1):
         if validate_wolfram_code(candidate_code):
             return candidate_code
@@ -497,7 +607,7 @@ def _validate_or_fix_wolfram_code(
 def _validate_or_fix_tex_code(
     candidate_code: str, tex_code_fixer: TeXCodeFixer
 ) -> str:
-    """Validate TeX code and try to regenerate it if needed."""
+    """Validate and repair TeX code, returning an empty string on failure."""
     for _ in range(_VALIDATION_RETRY_COUNT + 1):
         if validate_tex_code(candidate_code):
             return candidate_code
@@ -556,7 +666,7 @@ def _validate_user_wolfram_code(
 def _generate_validated_tex_code(
     prompt: str, model_str: str = OpenAIModels.mini
 ) -> tuple[str, str]:
-    """Generate, sanitize, and validate TeX code."""
+    """Generate TeX and return its validated and original forms."""
     tex_generator: TeXGenerator = TeXGenerator(
         _MATH_ASSISTANT_CLIENT, model_str
     )
@@ -575,11 +685,7 @@ def _generate_validated_tex_code(
 
 
 def _generate_plot_from_wolfram_code(response_str: str) -> None:
-    """Render a plot generated from Wolfram Language code.
-
-    Args:
-        response_str: Wolfram Language plot code to render.
-    """
+    """Generate a filename, export the Wolfram plot, and display its image."""
     logger.info('Detected plot code. Rendering plot...')
     wolfram_plot_summarizer: WolframPlotSummarizer = WolframPlotSummarizer(
         _MATH_ASSISTANT_CLIENT, OpenAIModels.mini
@@ -595,6 +701,27 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
 
 
 def validate_wolfram_code(candidate_wolfram_code):
+    """Evaluate Wolfram Language code and check for a $Failed result.
+
+    Evaluates Check[code, $Failed] in the shared Wolfram session, so Wolfram
+    messages caught by Check produce a failed validation. This executes the
+    supplied code and can change session state. It is not a syntax-only check
+    or a guarantee that the calculation is mathematically correct. Python
+    exceptions from the session propagate to the caller.
+
+    Args:
+        candidate_wolfram_code: Wolfram Language source to evaluate inside
+            the Check expression.
+
+    Returns:
+        False if evaluation returns the Wolfram $Failed symbol, including
+        when the supplied code itself returns $Failed; True otherwise.
+
+    Examples:
+        Check a simple arithmetic expression::
+
+            validate_wolfram_code('1 + 1')
+    """
     result = ws.evaluate(wlexpr(f'Check[{candidate_wolfram_code}, $Failed]'))
     if result == WLSymbol('$Failed'):
         return False
@@ -602,7 +729,24 @@ def validate_wolfram_code(candidate_wolfram_code):
 
 
 def validate_tex_code(latex_code: str) -> bool:
-    """Return True when pylatexenc can parse the LaTeX code."""
+    """Check whether pylatexenc parses LaTeX source without raising an error.
+
+    Uses LatexWalker with its default parsing settings. A successful parse
+    does not guarantee that the source compiles as LaTeX or renders in the
+    notebook frontend.
+
+    Args:
+        latex_code: LaTeX source to pass to LatexWalker.
+
+    Returns:
+        True if parser construction and parsing finish without an exception;
+        False if either raises an Exception.
+
+    Examples:
+        Check a simple math expression::
+
+            validate_tex_code('x^2')
+    """
     try:
         walker = LatexWalker(latex_code)
         walker.get_latex_nodes()
@@ -614,14 +758,25 @@ def validate_tex_code(latex_code: str) -> bool:
 def check_contains_plot_code(
     expr: str, plot_commands: tuple[str, ...] = PlotCommands.commands
 ) -> bool:
-    """Check whether a Wolfram Language expression contains plot code.
+    """Search Wolfram Language source for configured plot-command names.
+
+    Matches case-sensitive literal substrings without parsing or evaluating
+    the source. Names inside comments, strings, or longer identifiers also
+    match, so a match does not guarantee that evaluation produces a plot.
 
     Args:
-        expr: The Wolfram Language expression to inspect.
-        plot_commands: Plot command names to search for.
+        expr: Wolfram Language source to inspect.
+        plot_commands: Literal command names to search for. Defaults to the
+            plot_commands configuration loaded at module import.
 
     Returns:
-        True if any plot command is found, otherwise False.
+        True if any supplied command name occurs in expr; False otherwise,
+        including when plot_commands is empty.
+
+    Examples:
+        Search for a specific plotting command::
+
+            check_contains_plot_code('Plot[x, {x, 0, 1}]', ('Plot',))
     """
     for command in plot_commands:
         if re.search(rf'{re.escape(command)}', expr):
@@ -635,14 +790,7 @@ def check_contains_plot_code(
 
 
 def _extract_mathjax_safe_tex(result: object) -> str:
-    """Convert a Wolfram result into cleaned TeX that will display in MathJax.
-
-    Args:
-        result: The Wolfram result to convert.
-
-    Returns:
-        Cleaned TeX text.
-    """
+    """Convert a Wolfram result to TeX and apply MathJax formatting fixes."""
     tex_str: str = str(ws.evaluate(wl.ToString(wl.TeXForm(result))))
     cleaned_tex_str: str = _fix_hypergeometric_functions(tex_str)
     cleaned_tex_str: str = _fix_fbox(cleaned_tex_str)
@@ -683,6 +831,7 @@ def _build_equation_tex(
 def _parenthesize_saved_variables(tex_str: str) -> str:
     """Wrap saved names in parentheses without changing TeX commands."""
     def replace_symbol(match: re.Match[str]) -> str:
+        """Parenthesize the matched symbol if it names a saved result."""
         rendered_symbol = match.group(0)
         name = match.group(1) or rendered_symbol
         if name in _SAVED_RESULT_NAMES:
@@ -697,27 +846,13 @@ def _parenthesize_saved_variables(tex_str: str) -> str:
 
 
 def _fix_hypergeometric_functions(tex_str: str) -> str:
-    """Fix Wolfram's hypergeometric TeX output for notebook rendering.
-
-    Args:
-        tex_str: Raw TeX text from Wolfram.
-
-    Returns:
-        Adjusted TeX text.
-    """
+    """Fix Wolfram's hypergeometric TeX output for notebook rendering."""
     cleaned_tex_str: str = re.sub(r' _(\d+[A-Za-z])', r' {}_\1', tex_str)
     return cleaned_tex_str
 
 
 def _fix_fbox(tex_str: str) -> str:
-    """Fix Wolfram boxed TeX output for notebook rendering.
-
-    Args:
-        tex_str: Raw TeX text from Wolfram.
-
-    Returns:
-        Adjusted TeX text with fbox removed.
-    """
+    """Replace Wolfram fbox math wrappers with boxed markup for MathJax."""
     cleaned_tex_str: str = re.sub(
         r'\\fbox\{\$(.*?)\$\}', r'\\boxed{\1}', tex_str
     )
@@ -759,7 +894,7 @@ def _trim_leading_whitespace(text: str) -> str:
 
 
 def _parse_saveas(prompt: str) -> tuple[str, list[str]]:
-    """Remove one /saveas command and return its validated names."""
+    """Remove /saveas and return the remaining prompt and validated names."""
     commands = list(_SAVEAS_PATTERN.finditer(prompt))
     if not commands:
         return prompt, []
@@ -819,15 +954,7 @@ def _expand_result_references(prompt: str) -> tuple[str, bool]:
 
 
 def _parse_slash_commands(text: str) -> tuple[list[str], str]:
-    """Validate leading slash commands and return the valid prefix.
-
-    Args:
-        text: Input text that may start with slash commands.
-
-    Returns:
-        A tuple of valid leading commands and the text with that valid prefix
-        removed.
-    """
+    """Return valid commands and the text after the entire leading slash block."""
     match: re.Match[str] | None = _LEADING_SLASH_BLOCK_PATTERN.match(text)
     if match is None:
         return [], text
@@ -853,11 +980,7 @@ def _parse_slash_commands(text: str) -> tuple[list[str], str]:
 
 
 def _display_generated_code(response_str: str) -> None:
-    """Display generated Wolfram Language code.
-
-    Args:
-        response_str: Wolfram Language code to show.
-    """
+    """Display generated Wolfram Language code."""
     display(Markdown('\n**Generated Wolfram Code**:\n'))
     display(Markdown(f'```wolfram\n{response_str}\n```'))
 
@@ -869,12 +992,7 @@ def _display_generated_tex(response_str: str) -> None:
 
 
 def _default_display_results(result: object, equation_tex_str: str) -> None:
-    """Display the evaluated result and its TeX equation.
-
-    Args:
-        result: The evaluated Wolfram result.
-        equation_tex_str: TeX equation containing the input and result.
-    """
+    """Display the raw result, equation TeX source, and rendered equation."""
     display(Markdown('\n**Raw Evaluated Result**:\n'))
     display(Markdown(f'```plaintext\n{result!s}\n```'))
     display(Markdown('\n**Raw TeX**:\n'))
@@ -886,11 +1004,7 @@ def _default_display_results(result: object, equation_tex_str: str) -> None:
 
 
 def _display_result_only(equation_tex_str: str) -> None:
-    """Display only the rendered equation.
-
-    Args:
-        equation_tex_str: TeX equation containing the input and result.
-    """
+    """Display only the rendered equation."""
     display(Markdown(f'$$\\Large {equation_tex_str}$$'))
 
 
@@ -900,27 +1014,13 @@ def _display_result_only(equation_tex_str: str) -> None:
 
 
 def _to_relative_path(filename: str) -> str:
-    """Convert a filesystem path to a relative POSIX path.
-
-    Args:
-        filename: Absolute or local filesystem path.
-
-    Returns:
-        Relative path using forward slashes.
-    """
+    """Return a forward-slash path relative to the current working directory."""
     relative_path: str = os.path.relpath(filename, os.getcwd())
     return relative_path.replace('\\', '/')  # Handle Windows paths
 
 
 def _make_image_file(human_readable_filename: str) -> str:
-    """Create a plot image file path.
-
-    Args:
-        human_readable_filename: Prefix used for the temporary file name.
-
-    Returns:
-        Path to the created temporary image file.
-    """
+    """Create a persistent empty plot image file and return its path."""
     prefix: str = human_readable_filename + '_'
     os.makedirs(_PLOT_DIRECTORY, exist_ok=True)
     with tempfile.NamedTemporaryFile(
