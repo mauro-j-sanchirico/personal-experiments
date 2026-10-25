@@ -5,6 +5,7 @@ from pyderivehelper.wltools import (  # noqa: F401
     wc,
     wnlc,
     wplot,
+    ws,
 )
 
 logging.basicConfig(
