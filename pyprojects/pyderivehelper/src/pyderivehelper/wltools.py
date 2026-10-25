@@ -140,8 +140,8 @@ def wc(expr: object) -> object:
     result: object = ws.evaluate(expr)
     save_expr_str: str = f'{_RESULT_STR} = {expr}'
     ws.evaluate(save_expr_str)
-    clean_tex_expr: str = _extract_mathjax_safe_tex(ws.evaluate(_RESULT_STR))
-    display(Math(clean_tex_expr))
+    cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
+    _default_display_results(result, cleaned_tex_str)
     return result
 
 
