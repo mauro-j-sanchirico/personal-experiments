@@ -1,21 +1,9 @@
-import os
-from collections.abc import Iterator
 from unittest.mock import patch
 
+import pytest
 from httpx2 import Request
 from openai import APIConnectionError
-import pytest
-
-os.environ.setdefault('OPENAI_PERSONAL_MATH_ASSISTANT', 'test-key')
-
-from pyderivehelper import wltools  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def patch_kernel_start() -> Iterator[None]:
-    with patch.object(wltools.ws, 'start'):
-        yield
-
+from pyderivehelper import wltools
 
 
 def test_kernel_start_failure_is_displayed_before_work() -> None:
