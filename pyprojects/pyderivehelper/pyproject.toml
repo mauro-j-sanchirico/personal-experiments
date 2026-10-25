@@ -17,6 +17,9 @@ dependencies = [
     "wolframclient>=1.4.0",
 ]
 
+[dependency-groups]
+dev = ["pytest"]
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
