@@ -52,6 +52,36 @@ In the notebook, select this project's `.venv` Python interpreter as the kernel
 
 ## Usage
 
+Use `/saveas !name` to save a calculation's result in the current Wolfram
+session. Refer to it as `!name` in later natural-language prompts, or use
+`name` directly in Wolfram code:
+
+```python
+from pyderivehelper import wc, wnlc
+
+wnlc('/calc Expand (x + 1)^2 /saveas !poly1 !expandedPoly')
+wnlc('/calc Evaluate !poly1 at x = 2')
+wnlc('/calc Differentiate !expandedPoly with respect to x')
+wc('poly1 /. x -> 2')
+```
+
+Saved names are used directly as Wolfram variable names; `!` is only a prompt
+marker. Both evaluation examples above produce `9`.
+
+- Names must start with an ASCII letter and contain only ASCII letters and
+  digits. Underscores are not allowed.
+- Names are case-sensitive. `result`, `bothsides`, `lhs`, and `rhs` are reserved.
+- Avoid using names that conflict with Wolfram built in functions.
+
+One `/saveas` command can save the same result under multiple names, separated
+by spaces or tabs. Saved variables remain available as other calculations
+change `!result`. Saving a name again overwrites that Wolfram variable.
+Use `!!name` to include a reference token literally in a prompt.
+
+`/saveas` requires a successful non-plot calculation and is unavailable with
+`/code`, `/tex`, and `/help`. See [the command reference](help_message.md) or
+run `wnlc('/help')` for all commands.
+
 ## License
 
 This project is provided with an MIT license (see `LICENSE` file). Additional dependencies have their own licenses which might apply depending on use case.
@@ -61,3 +91,5 @@ This project is provided with an MIT license (see `LICENSE` file). Additional de
 For Wolfram Engine, see the [license FAQ](https://www.wolfram.com/engine/faq/).
 
 ## Contributing
+
+Please email Mauro Sanchirico sanchirico.mauro@gmail.com (personal) with questions, comments, bug reports, or suggestions for improvement.
