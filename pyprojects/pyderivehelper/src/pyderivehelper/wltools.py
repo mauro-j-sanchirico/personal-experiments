@@ -63,9 +63,7 @@ _HELP_MESSAGE_PATH: Path = Path(__file__).resolve().parents[2] / 'help_message.m
 load_dotenv()
 ws: WolframLanguageSession = WolframLanguageSession()
 _LAST_RESULT_AVAILABLE = False
-_SAVED_RESULT_SYMBOLS: dict[str, str] = {}
-_SAVED_SYMBOL_NAMES: dict[str, str] = {}
-_NEXT_SAVED_RESULT_ID = 0
+_SAVED_RESULT_NAMES: set[str] = set()
 _NO_LEFT_RESULT = object()
 _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
     api_key=os.environ[_OPENAI_API_KEY_ENV_VAR]
@@ -435,13 +433,9 @@ def _save_results_if_successful(
         return
     if result is None or result[0] == WLSymbol('$Failed'):
         raise ValueError('/saveas requires a successful non-plot result')
-    global _NEXT_SAVED_RESULT_ID
     for name in names:
-        _NEXT_SAVED_RESULT_ID += 1
-        symbol = f'PyDeriveHelper`savedResult{_NEXT_SAVED_RESULT_ID}'
-        ws.evaluate(wl.Set(WLSymbol(symbol), WLSymbol('Global`rhs')))
-        _SAVED_RESULT_SYMBOLS[name] = symbol
-        _SAVED_SYMBOL_NAMES[symbol] = name
+        ws.evaluate(wl.Set(WLSymbol(f'Global`{name}'), WLSymbol('Global`rhs')))
+        _SAVED_RESULT_NAMES.add(name)
 
 
 def _hold_input(expr: str) -> object:
@@ -676,23 +670,11 @@ def _build_equation_tex(
             wlexpr('HoldComplete[inner_] :> HoldForm[inner]'),
         ),
     )
-    display_expr = _display_saved_names(display_expr)
     input_tex: str = str(ws.evaluate(wl.ToString(wl.TeXForm(display_expr))))
     input_tex = _fix_fbox(_fix_hypergeometric_functions(input_tex))
     if is_indefinite_integral:
         result_tex = f'{result_tex} + C'
     return f'{input_tex} = {result_tex}'
-
-
-def _display_saved_names(expr: object) -> object:
-    """Replace internal symbols with their names for TeX output only."""
-    if not _SAVED_SYMBOL_NAMES:
-        return expr
-    rules = [
-        wl.Rule(wl.HoldPattern(WLSymbol(symbol)), name)
-        for symbol, name in _SAVED_SYMBOL_NAMES.items()
-    ]
-    return wl.ReplaceAll(expr, wl.List(*rules))
 
 
 def _fix_hypergeometric_functions(tex_str: str) -> str:
@@ -749,7 +731,7 @@ _RESULT_REFERENCE_PATTERN: re.Pattern[str] = re.compile(
     r'(?<!!)(?<!\w)!([A-Za-z_][A-Za-z_0-9]*)\b'
 )
 _SAVEAS_PATTERN: re.Pattern[str] = re.compile(r'(?<!\S)/saveas\b')
-_SAVED_NAME_PATTERN: re.Pattern[str] = re.compile(r'[A-Za-z_][A-Za-z_0-9]*')
+_SAVED_NAME_PATTERN: re.Pattern[str] = re.compile(r'[A-Za-z][A-Za-z0-9]*')
 
 
 def _trim_leading_whitespace(text: str) -> str:
@@ -771,10 +753,13 @@ def _parse_saveas(prompt: str) -> tuple[str, list[str]]:
     names = [token[1:] for token in arguments.group().split()]
     if any(
         _SAVED_NAME_PATTERN.fullmatch(name) is None
-        or name in {'result', 'bothsides'}
+        or name in {'result', 'bothsides', 'lhs', 'rhs'}
         for name in names
     ):
-        raise ValueError('Saved names must use letters, digits, or underscores')
+        raise ValueError(
+            'Saved names must start with a letter and contain only letters '
+            'and digits; result, bothsides, lhs, and rhs are reserved'
+        )
     end = command.end() + arguments.end()
     if re.match(r'\s+!', prompt[end:]):
         raise ValueError('Separate /saveas names with spaces or tabs only')
@@ -790,13 +775,13 @@ def _expand_result_references(prompt: str) -> tuple[str, bool]:
         raise ValueError('No previous successful calculation to reference')
     if {'result', 'bothsides'} <= references:
         raise ValueError('Use !result or !bothsides, not both in one prompt')
-    unknown = references - {'result', 'bothsides'} - _SAVED_RESULT_SYMBOLS.keys()
+    unknown = references - {'result', 'bothsides'} - _SAVED_RESULT_NAMES
     if unknown:
         raise ValueError(f'Unknown saved result: !{sorted(unknown)[0]}')
     expanded = _RESULT_REFERENCE_PATTERN.sub(
         lambda match: (
             'rhs' if match.group(1) in {'result', 'bothsides'}
-            else _SAVED_RESULT_SYMBOLS[match.group(1)]
+            else match.group(1)
         ),
         prompt,
     )
