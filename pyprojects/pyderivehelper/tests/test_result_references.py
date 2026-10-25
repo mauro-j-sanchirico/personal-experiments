@@ -56,9 +56,12 @@ class ResultReferenceTests(unittest.TestCase):
             self.assertIn('ReplaceAll', str(evaluate.call_args_list[1].args[0]))
 
     def test_equation_displays_saved_references_under_hold(self) -> None:
-        with patch.object(
-            wltools.ws, 'evaluate', side_effect=[False, 'expanded input']
-        ) as evaluate:
+        with (
+            patch.object(wltools, '_SAVED_SYMBOL_NAMES', {}),
+            patch.object(
+                wltools.ws, 'evaluate', side_effect=[False, 'expanded input']
+            ) as evaluate,
+        ):
             self.assertEqual(
                 wltools._build_equation_tex('9'), 'expanded input = 9'
             )
@@ -67,6 +70,21 @@ class ResultReferenceTests(unittest.TestCase):
         self.assertIn('ReplaceRepeated', display_call)
         self.assertIn('ReleaseHold[HoldComplete', display_call)
         self.assertIn('HoldForm', display_call)
+
+    def test_equation_uses_saved_name_for_display(self) -> None:
+        saved_names = {'PyDeriveHelper`savedResult1': 'my_var'}
+        with (
+            patch.object(wltools, '_SAVED_SYMBOL_NAMES', saved_names),
+            patch.object(
+                wltools.ws, 'evaluate', side_effect=[False, 'D[my_var,x]']
+            ) as evaluate,
+        ):
+            self.assertEqual(
+                wltools._build_equation_tex('1'), 'D[my_var,x] = 1'
+            )
+        display_call = str(evaluate.call_args_list[1].args[0])
+        self.assertIn('HoldPattern[PyDeriveHelper`savedResult1]', display_call)
+        self.assertIn('my_var', display_call)
 
     def test_references_require_history_and_honor_literal_escape(self) -> None:
         with patch.object(wltools, '_LAST_RESULT_AVAILABLE', False):
@@ -79,6 +97,72 @@ class ResultReferenceTests(unittest.TestCase):
             self.assertTrue(both_sides)
             self.assertIn('Integrate rhs', prompt)
             self.assertIn('!result literally', prompt)
+
+    def test_saveas_parses_multiple_names_and_rejects_invalid_commands(self) -> None:
+        prompt, names = wltools._parse_saveas(
+            '/calc Integrate x /saveas\t!myvar1  !my_var2'
+        )
+        self.assertEqual(prompt, '/calc Integrate x')
+        self.assertEqual(names, ['myvar1', 'my_var2'])
+        for prompt in (
+            'Integrate x /saveas !a /saveas !b',
+            'Integrate x /saveas\n!a',
+            'Integrate x /saveas !a\n!b',
+            'Integrate x /saveas !bad-name',
+            'Integrate x /saveas !result',
+        ):
+            with self.subTest(prompt=prompt), self.assertRaises(ValueError):
+                wltools._parse_saveas(prompt)
+
+    def test_saveas_stores_rhs_and_resolves_saved_names(self) -> None:
+        with (
+            patch.object(wltools, '_SAVED_RESULT_SYMBOLS', {}),
+            patch.object(wltools, '_SAVED_SYMBOL_NAMES', {}),
+            patch.object(wltools, '_NEXT_SAVED_RESULT_ID', 0),
+            patch.object(wltools, '_wnlc_default_pipeline', return_value=(2, '2'))
+            as pipeline,
+            patch.object(wltools.ws, 'evaluate') as evaluate,
+        ):
+            wltools.wnlc('Integrate x /saveas !first1 !second_2')
+            self.assertEqual(pipeline.call_args.args[0], 'Integrate x')
+            self.assertEqual(evaluate.call_count, 2)
+            self.assertIn('Global`rhs', str(evaluate.call_args.args[0]))
+            first_symbol = wltools._SAVED_RESULT_SYMBOLS['first1']
+            second_symbol = wltools._SAVED_RESULT_SYMBOLS['second_2']
+            self.assertNotEqual(first_symbol, second_symbol)
+            self.assertEqual(wltools._SAVED_SYMBOL_NAMES[first_symbol], 'first1')
+            self.assertEqual(wltools._SAVED_SYMBOL_NAMES[second_symbol], 'second_2')
+            prompt, _ = wltools._expand_result_references('Add !first1 to !second_2')
+            self.assertIn(first_symbol, prompt)
+            self.assertIn(second_symbol, prompt)
+            wltools.wnlc('Integrate x^2 /saveas !first1')
+            self.assertNotEqual(
+                first_symbol, wltools._SAVED_RESULT_SYMBOLS['first1']
+            )
+            self.assertEqual(
+                second_symbol, wltools._SAVED_RESULT_SYMBOLS['second_2']
+            )
+            self.assertEqual(wltools._SAVED_SYMBOL_NAMES[first_symbol], 'first1')
+
+    def test_saveas_requires_a_successful_evaluating_pipeline(self) -> None:
+        with patch.object(wltools, '_wnlc_default_pipeline', return_value=None):
+            with self.assertRaises(ValueError):
+                wltools.wnlc('Plot x /saveas !plot')
+        with self.assertRaises(ValueError):
+            wltools.wnlc('/code Integrate x /saveas !integral')
+        with self.assertRaises(ValueError):
+            wltools._expand_result_references('Integrate !missing')
+
+    def test_calc_display_options_still_save_result(self) -> None:
+        with (
+            patch.object(wltools, '_wnlc_calc_pipeline', return_value=(2, '2'))
+            as pipeline,
+            patch.object(wltools, '_save_results_if_successful') as save,
+        ):
+            result = wltools.wnlc('/calc /showcode Integrate x /saveas !area')
+            self.assertIsNone(result)
+            self.assertEqual(pipeline.call_args.args[0], 'Integrate x')
+            save.assert_called_once_with(['area'], (2, '2'))
 
     def test_both_sides_runs_the_same_operation_and_displays_equation(self) -> None:
         with (

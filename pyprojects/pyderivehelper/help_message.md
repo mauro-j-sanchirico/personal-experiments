@@ -6,6 +6,8 @@ The last successful calculation from `wc` or `wnlc` is available in the Wolfram 
 
 In a natural-language `wnlc` prompt, use `!result` to operate on `rhs`, or `!bothsides` to apply the same operation to both sides and display their results as an equation. For example, `wnlc('Integrate !bothsides with respect to x')`. After a two-sided calculation, the displayed left and right results become the next held `lhs` and `rhs`. These references work in the default and `/calc` pipelines, including when `/calc` has display options; `!result` also works with `/code`. Write `!!result` or `!!bothsides` to include either token literally.
 
+Add `/saveas !name` to an evaluating prompt to save its successful result for later use, for example `wnlc('Integrate sin(x) with respect to x /saveas !integral')` followed by `wnlc('Differentiate !integral with respect to x')`. One `/saveas` command may contain multiple names, separated by spaces or tabs: `/saveas !first1 !second_2`. Names must start with a letter or underscore and contain only letters, digits, and underscores. `result` and `bothsides` are reserved names. Saving a name again makes later references use the new result; previous calculations retain their original values. `/saveas` is unavailable with `/code`, `/tex`, `/help`, and plots. Use `!!name` to include a saved-reference token literally.
+
 Use commands of the form `/command` to choose what WNLC should return. If no command is provided, the default pipeline is used.
 
 The following pipelines are provided:

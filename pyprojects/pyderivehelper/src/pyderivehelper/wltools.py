@@ -61,6 +61,9 @@ _HELP_MESSAGE_PATH: Path = Path(__file__).resolve().parents[2] / 'help_message.m
 load_dotenv()
 ws: WolframLanguageSession = WolframLanguageSession()
 _LAST_RESULT_AVAILABLE = False
+_SAVED_RESULT_SYMBOLS: dict[str, str] = {}
+_SAVED_SYMBOL_NAMES: dict[str, str] = {}
+_NEXT_SAVED_RESULT_ID = 0
 _NO_LEFT_RESULT = object()
 _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
     api_key=os.environ[_OPENAI_API_KEY_ENV_VAR]
@@ -160,7 +163,12 @@ def wnlc(
     """
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
     prompt = _trim_leading_whitespace(prompt)
+    prompt, save_names = _parse_saveas(prompt)
     slash_commands, prompt = _parse_slash_commands(prompt)
+    if save_names and any(
+        command in {'code', 'tex', 'help'} for command in slash_commands
+    ):
+        raise ValueError('/saveas requires an evaluating pipeline')
     show_code = 'showcode' in slash_commands
     show_tex = 'showtex' in slash_commands
     if show_code or show_tex:
@@ -180,22 +188,28 @@ def wnlc(
     if both_sides:
         if 'code' in slash_commands:
             raise ValueError('!bothsides requires an evaluating pipeline')
-        return _wnlc_both_sides_pipeline(
+        result = _wnlc_both_sides_pipeline(
             prompt, model_str, compact='calc' in slash_commands,
             show_code=show_code, show_tex=show_tex,
         )
+        _save_results_if_successful(save_names, result)
+        return result
     if show_code or show_tex:
-        _wnlc_calc_pipeline(
+        result = _wnlc_calc_pipeline(
             prompt, model_str, show_code=show_code, show_tex=show_tex
         )
+        _save_results_if_successful(save_names, result)
         return None
     if slash_commands:
         logger.info('Found slash command(s): %s', ', '.join(slash_commands))
         for command in slash_commands:
             slash_command_pipeline = _SLASH_COMMANDS[command]
-            slash_command_pipeline(prompt, model_str)
+            result = slash_command_pipeline(prompt, model_str)
+        _save_results_if_successful(save_names, result)
     else:
-        return _wnlc_default_pipeline(prompt, model_str)
+        result = _wnlc_default_pipeline(prompt, model_str)
+        _save_results_if_successful(save_names, result)
+        return result
 
 
 # =============================================================================
@@ -378,6 +392,23 @@ def _evaluate_and_remember(
     ws.evaluate(wlexpr('Global`rhs = PyDeriveHelper`pending'))
     _LAST_RESULT_AVAILABLE = True
     return result
+
+
+def _save_results_if_successful(
+    names: list[str], result: tuple[object, str] | None
+) -> None:
+    """Save the current rhs after an evaluating pipeline succeeds."""
+    if not names:
+        return
+    if result is None or result[0] == WLSymbol('$Failed'):
+        raise ValueError('/saveas requires a successful non-plot result')
+    global _NEXT_SAVED_RESULT_ID
+    for name in names:
+        _NEXT_SAVED_RESULT_ID += 1
+        symbol = f'PyDeriveHelper`savedResult{_NEXT_SAVED_RESULT_ID}'
+        ws.evaluate(wl.Set(WLSymbol(symbol), WLSymbol('Global`rhs')))
+        _SAVED_RESULT_SYMBOLS[name] = symbol
+        _SAVED_SYMBOL_NAMES[symbol] = name
 
 
 def _hold_input(expr: str) -> object:
@@ -612,11 +643,23 @@ def _build_equation_tex(
             wlexpr('HoldComplete[inner_] :> HoldForm[inner]'),
         ),
     )
+    display_expr = _display_saved_names(display_expr)
     input_tex: str = str(ws.evaluate(wl.ToString(wl.TeXForm(display_expr))))
     input_tex = _fix_fbox(_fix_hypergeometric_functions(input_tex))
     if is_indefinite_integral:
         result_tex = f'{result_tex} + C'
     return f'{input_tex} = {result_tex}'
+
+
+def _display_saved_names(expr: object) -> object:
+    """Replace internal symbols with their names for TeX output only."""
+    if not _SAVED_SYMBOL_NAMES:
+        return expr
+    rules = [
+        wl.Rule(wl.HoldPattern(WLSymbol(symbol)), name)
+        for symbol, name in _SAVED_SYMBOL_NAMES.items()
+    ]
+    return wl.ReplaceAll(expr, wl.List(*rules))
 
 
 def _fix_hypergeometric_functions(tex_str: str) -> str:
@@ -670,8 +713,10 @@ _LEADING_SLASH_BLOCK_PATTERN: re.Pattern[str] = re.compile(
     r'^(?:/[^\s/]+(?:\s+|(?=/)|$))+'
 )
 _RESULT_REFERENCE_PATTERN: re.Pattern[str] = re.compile(
-    r'(?<!!)(?<!\w)!(result|bothsides)\b'
+    r'(?<!!)(?<!\w)!([A-Za-z_][A-Za-z_0-9]*)\b'
 )
+_SAVEAS_PATTERN: re.Pattern[str] = re.compile(r'(?<!\S)/saveas\b')
+_SAVED_NAME_PATTERN: re.Pattern[str] = re.compile(r'[A-Za-z_][A-Za-z_0-9]*')
 
 
 def _trim_leading_whitespace(text: str) -> str:
@@ -679,24 +724,53 @@ def _trim_leading_whitespace(text: str) -> str:
     return text.lstrip()
 
 
+def _parse_saveas(prompt: str) -> tuple[str, list[str]]:
+    """Remove one /saveas command and return its validated names."""
+    commands = list(_SAVEAS_PATTERN.finditer(prompt))
+    if not commands:
+        return prompt, []
+    if len(commands) > 1:
+        raise ValueError('Only one /saveas command is allowed')
+    command = commands[0]
+    arguments = re.match(r'(?:[ \t]+![^\s]+)+', prompt[command.end():])
+    if arguments is None:
+        raise ValueError('/saveas requires one or more !name arguments')
+    names = [token[1:] for token in arguments.group().split()]
+    if any(
+        _SAVED_NAME_PATTERN.fullmatch(name) is None
+        or name in {'result', 'bothsides'}
+        for name in names
+    ):
+        raise ValueError('Saved names must use letters, digits, or underscores')
+    end = command.end() + arguments.end()
+    if re.match(r'\s+!', prompt[end:]):
+        raise ValueError('Separate /saveas names with spaces or tabs only')
+    return (prompt[:command.start()] + prompt[end:]).strip(), names
+
+
 def _expand_result_references(prompt: str) -> tuple[str, bool]:
-    """Replace natural-language history references with the Wolfram rhs."""
+    """Replace natural-language result references with Wolfram symbols."""
     references = set(_RESULT_REFERENCE_PATTERN.findall(prompt))
     if not references:
-        return prompt.replace('!!result', '!result').replace(
-            '!!bothsides', '!bothsides'
-        ), False
-    if not _LAST_RESULT_AVAILABLE:
+        return re.sub(r'(?<!\w)!!(?=[A-Za-z_])', '!', prompt), False
+    if references & {'result', 'bothsides'} and not _LAST_RESULT_AVAILABLE:
         raise ValueError('No previous successful calculation to reference')
-    if len(references) > 1:
+    if {'result', 'bothsides'} <= references:
         raise ValueError('Use !result or !bothsides, not both in one prompt')
-    expanded = _RESULT_REFERENCE_PATTERN.sub('rhs', prompt)
-    expanded = expanded.replace('!!result', '!result').replace(
-        '!!bothsides', '!bothsides'
+    unknown = references - {'result', 'bothsides'} - _SAVED_RESULT_SYMBOLS.keys()
+    if unknown:
+        raise ValueError(f'Unknown saved result: !{sorted(unknown)[0]}')
+    expanded = _RESULT_REFERENCE_PATTERN.sub(
+        lambda match: (
+            'rhs' if match.group(1) in {'result', 'bothsides'}
+            else _SAVED_RESULT_SYMBOLS[match.group(1)]
+        ),
+        prompt,
     )
+    expanded = re.sub(r'(?<!\w)!!(?=[A-Za-z_])', '!', expanded)
     expanded += (
-        '\nThe symbol rhs is a Wolfram Language variable holding the previous '
-        'result. Use rhs directly in the generated expression.'
+        '\nThe substituted symbols are Wolfram Language variables holding '
+        'saved results. Use them directly in the generated expression.'
     )
     return expanded, 'bothsides' in references
 
