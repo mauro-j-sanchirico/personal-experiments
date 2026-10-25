@@ -118,6 +118,36 @@ def test_equation_displays_saved_references_under_hold() -> None:
     assert 'HoldForm' in display_call
 
 
+@pytest.mark.parametrize(
+    ('input_tex', 'expected_tex'),
+    [
+        (
+            r'\frac{\partial \text{expandedPoly}}{\partial x}',
+            r'\frac{\partial \left(\text{expandedPoly}\right)}{\partial x}',
+        ),
+        (r'a + a^2', r'\left(a\right) + \left(a\right)^2'),
+        (
+            r'\text{poly} + \text{poly1} + \text{poly10}',
+            r'\text{poly} + \left(\text{poly1}\right) + \text{poly10}',
+        ),
+        (r'\frac{x}{2} + \partial x', r'\frac{x}{2} + \partial x'),
+    ],
+)
+def test_equation_parenthesizes_saved_variable_names(
+    input_tex: str, expected_tex: str,
+) -> None:
+    with (
+        patch.object(wltools.ws, 'evaluate', side_effect=[False, input_tex]),
+        patch.object(
+            wltools, '_SAVED_RESULT_NAMES',
+            {'expandedPoly', 'a', 'poly1', 'frac', 'partial'},
+        ),
+    ):
+        assert wltools._build_equation_tex(input_tex) == (
+            f'{expected_tex} = {input_tex}'
+        )
+
+
 def test_references_require_history_and_honor_literal_escape() -> None:
     with patch.object(wltools, '_LAST_RESULT_AVAILABLE', False):
         with pytest.raises(ValueError):

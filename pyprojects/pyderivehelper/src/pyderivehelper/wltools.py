@@ -436,6 +436,8 @@ def _save_results_if_successful(
     for name in names:
         ws.evaluate(wl.Set(WLSymbol(f'Global`{name}'), WLSymbol('Global`rhs')))
         _SAVED_RESULT_NAMES.add(name)
+    saved_names = ', '.join(f'**!{name}**' for name in names)
+    display(Markdown(f'Saved as {saved_names}'))
 
 
 def _hold_input(expr: str) -> object:
@@ -672,9 +674,26 @@ def _build_equation_tex(
     )
     input_tex: str = str(ws.evaluate(wl.ToString(wl.TeXForm(display_expr))))
     input_tex = _fix_fbox(_fix_hypergeometric_functions(input_tex))
+    input_tex = _parenthesize_saved_variables(input_tex)
     if is_indefinite_integral:
         result_tex = f'{result_tex} + C'
     return f'{input_tex} = {result_tex}'
+
+
+def _parenthesize_saved_variables(tex_str: str) -> str:
+    """Wrap saved names in parentheses without changing TeX commands."""
+    def replace_symbol(match: re.Match[str]) -> str:
+        rendered_symbol = match.group(0)
+        name = match.group(1) or rendered_symbol
+        if name in _SAVED_RESULT_NAMES:
+            return rf'\left({rendered_symbol}\right)'
+        return rendered_symbol
+
+    return re.sub(
+        r'\\text\{([A-Za-z][A-Za-z0-9]*)\}|\\[A-Za-z]+|[A-Za-z][A-Za-z0-9]*',
+        replace_symbol,
+        tex_str,
+    )
 
 
 def _fix_hypergeometric_functions(tex_str: str) -> str:

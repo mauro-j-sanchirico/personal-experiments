@@ -1,6 +1,7 @@
 # Project-specific
-.pytest-tmp/
-.pytest-tmp~
+.pytest-*
+.pytest_cache/
+.mypy_cache/
 
 
 # Byte-compiled / optimized / DLL files
