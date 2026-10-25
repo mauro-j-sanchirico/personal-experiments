@@ -14,6 +14,7 @@ from PIL import Image as PillowImage
 from pylatexenc.latexwalker import LatexWalker
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
+from wolframclient.language.expression import WLSymbol
 
 from pyderivehelper.agents import (
     TeXCodeFixer,
@@ -46,7 +47,6 @@ _CONFIG: dict[str, str] = load_config()
 _OPENAI_API_KEY_ENV_VAR: str = _CONFIG['openai_api_key_env_var']
 _PLOT_DIRECTORY: str = _CONFIG['plot_directory']
 _PLOT_EXTENSION: str = _CONFIG['plot_extension']
-_RESULT_STR: str = _CONFIG['result_str']
 _VALIDATION_RETRY_COUNT: int = max(
     0, int(_CONFIG['wolfram_code_validation_retry_count'])
 )
@@ -60,6 +60,8 @@ _HELP_MESSAGE_PATH: Path = Path(__file__).resolve().parents[2] / 'help_message.m
 
 load_dotenv()
 ws: WolframLanguageSession = WolframLanguageSession()
+_LAST_RESULT_AVAILABLE = False
+_NO_LEFT_RESULT = object()
 _MATH_ASSISTANT_CLIENT: OpenAI = OpenAI(
     api_key=os.environ[_OPENAI_API_KEY_ENV_VAR]
 )
@@ -128,8 +130,7 @@ def wplot(filename: str, command: str) -> None:
 def wc(expr: object) -> object:
     """Evaluate a Wolfram expression, store it, and print the result.
 
-    The expression is stored in the Wolfram session under the symbol 'rrr' for
-    easy access in subsequent Wolfram commands.
+    The input is stored as held `lhs`; its evaluated value is stored as `rhs`.
 
     Args:
         expr: The Wolfram expression to evaluate.
@@ -137,9 +138,7 @@ def wc(expr: object) -> object:
     Returns:
         The evaluated Wolfram result.
     """
-    result: object = ws.evaluate(expr)
-    save_expr_str: str = f'{_RESULT_STR} = {expr}'
-    ws.evaluate(save_expr_str)
+    result: object = _evaluate_and_remember(str(expr))
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(expr, cleaned_tex_str)
     _default_display_results(result, equation_tex_str)
@@ -162,6 +161,18 @@ def wnlc(
     logger.info('Logger level: %s', logging.getLevelName(logger.level))
     prompt = _trim_leading_whitespace(prompt)
     slash_commands, prompt = _parse_slash_commands(prompt)
+    natural_language = not slash_commands or all(
+        command in {'code', 'calc'} for command in slash_commands
+    )
+    both_sides = False
+    if natural_language:
+        prompt, both_sides = _expand_result_references(prompt)
+    if both_sides:
+        if 'code' in slash_commands:
+            raise ValueError('!bothsides requires an evaluating pipeline')
+        return _wnlc_both_sides_pipeline(
+            prompt, model_str, compact='calc' in slash_commands
+        )
     if slash_commands:
         logger.info('Found slash command(s): %s', ', '.join(slash_commands))
         for command in slash_commands:
@@ -219,7 +230,7 @@ def _wnlc_run_pipeline(
         return None
     _display_generated_code(validated_response_str)
     logger.info('Evaluating code...')
-    result: object = ws.evaluate(validated_response_str)
+    result: object = _evaluate_and_remember(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(
         validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
@@ -244,7 +255,7 @@ def _wnlc_calc_pipeline(
         _generate_plot_from_wolfram_code(validated_response_str)
         return None
     logger.info('Evaluating code...')
-    result: object = ws.evaluate(validated_response_str)
+    result: object = _evaluate_and_remember(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(
         validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
@@ -284,13 +295,88 @@ def _wnlc_default_pipeline(
         _generate_plot_from_wolfram_code(validated_response_str)
         return None
     logger.info('Evaluating code...')
-    result: object = ws.evaluate(validated_response_str)
+    result: object = _evaluate_and_remember(validated_response_str)
     cleaned_tex_str: str = _extract_mathjax_safe_tex(result)
     equation_tex_str: str = _build_equation_tex(
         validated_response_str, cleaned_tex_str, unwrap_full_simplify=True
     )
     _default_display_results(result, equation_tex_str)
     return result, cleaned_tex_str
+
+
+def _wnlc_both_sides_pipeline(
+    prompt: str, model_str: str, compact: bool = False
+) -> tuple[object, str] | None:
+    """Apply one generated operation to each side of the previous result."""
+    code, response = _generate_validated_wolfram_code(prompt, model_str)
+    if not code:
+        _handle_wolfram_validation_error(response)
+        return None
+    if not re.search(r'(?<![\w`])rhs(?![\w`])', code):
+        raise ValueError('Generated code did not use the !bothsides reference')
+    if check_contains_plot_code(code):
+        raise ValueError('!bothsides does not support plot operations')
+    left_code = f'With[{{rhs = ReleaseHold[lhs]}}, {code}]'
+    if not compact:
+        _display_generated_code(f'{left_code}\n{code}')
+    left_result = ws.evaluate(wlexpr(left_code))
+    if left_result == WLSymbol('$Failed'):
+        _handle_wolfram_validation_error(left_code)
+        return None
+    right_result = _evaluate_and_remember(code, left_result)
+    if right_result == WLSymbol('$Failed'):
+        _handle_wolfram_validation_error(code)
+        return None
+    equation_tex = (
+        f'{_extract_mathjax_safe_tex(left_result)} = '
+        f'{_extract_mathjax_safe_tex(right_result)}'
+    )
+    if compact:
+        _display_result_only(equation_tex)
+    else:
+        _default_display_results((left_result, right_result), equation_tex)
+    return (left_result, right_result), equation_tex
+
+
+def _evaluate_and_remember(
+    expr: str, left_result: object = _NO_LEFT_RESULT
+) -> object:
+    """Evaluate once, then save held lhs and evaluated rhs in Wolfram."""
+    global _LAST_RESULT_AVAILABLE
+    result = ws.evaluate(wlexpr(f'PyDeriveHelper`pending = ({expr})'))
+    if result == WLSymbol('$Failed'):
+        return result
+    held_input = (
+        _hold_input(expr)
+        if left_result is _NO_LEFT_RESULT
+        else wl.HoldComplete(left_result)
+    )
+    ws.evaluate(wl.Set(WLSymbol('Global`lhs'), held_input))
+    ws.evaluate(wlexpr('Global`rhs = PyDeriveHelper`pending'))
+    _LAST_RESULT_AVAILABLE = True
+    return result
+
+
+def _hold_input(expr: str) -> object:
+    """Hold the input and snapshot prior lhs/rhs references within it."""
+    held_input = wl.ToExpression(expr, wl.InputForm, wl.HoldComplete)
+    if not _LAST_RESULT_AVAILABLE:
+        return held_input
+    previous_lhs = WLSymbol('PyDeriveHelper`previousLhs')
+    previous_rhs = WLSymbol('PyDeriveHelper`previousRhs')
+    return wl.With(
+        wl.List(
+            wl.Set(previous_lhs, WLSymbol('Global`lhs')),
+            wl.Set(previous_rhs, WLSymbol('Global`rhs')),
+        ),
+        wl.ReplaceAll(
+            held_input,
+            wl.List(
+                wl.Rule(wl.HoldPattern(WLSymbol('Global`lhs')), previous_lhs),
+                wl.Rule(wl.HoldPattern(WLSymbol('Global`rhs')), previous_rhs),
+            ),
+        ),
+    )
 
 
 # =============================================================================
@@ -426,7 +512,7 @@ def _generate_plot_from_wolfram_code(response_str: str) -> None:
 
 def validate_wolfram_code(candidate_wolfram_code):
     result = ws.evaluate(wlexpr(f'Check[{candidate_wolfram_code}, $Failed]'))
-    if result == wl.Symbol('$Failed'):
+    if result == WLSymbol('$Failed'):
         return False
     return True
 
@@ -552,11 +638,36 @@ _LEADING_SLASH_TOKEN_PATTERN: re.Pattern[str] = re.compile(r'/([^\s/]+)')
 _LEADING_SLASH_BLOCK_PATTERN: re.Pattern[str] = re.compile(
     r'^(?:/[^\s/]+(?:\s+|(?=/)|$))+'
 )
+_RESULT_REFERENCE_PATTERN: re.Pattern[str] = re.compile(
+    r'(?<!!)(?<!\w)!(result|bothsides)\b'
+)
 
 
 def _trim_leading_whitespace(text: str) -> str:
     """Remove leading whitespace from text."""
     return text.lstrip()
+
+
+def _expand_result_references(prompt: str) -> tuple[str, bool]:
+    """Replace natural-language history references with the Wolfram rhs."""
+    references = set(_RESULT_REFERENCE_PATTERN.findall(prompt))
+    if not references:
+        return prompt.replace('!!result', '!result').replace(
+            '!!bothsides', '!bothsides'
+        ), False
+    if not _LAST_RESULT_AVAILABLE:
+        raise ValueError('No previous successful calculation to reference')
+    if len(references) > 1:
+        raise ValueError('Use !result or !bothsides, not both in one prompt')
+    expanded = _RESULT_REFERENCE_PATTERN.sub('rhs', prompt)
+    expanded = expanded.replace('!!result', '!result').replace(
+        '!!bothsides', '!bothsides'
+    )
+    expanded += (
+        '\nThe symbol rhs is a Wolfram Language variable holding the previous '
+        'result. Use rhs directly in the generated expression.'
+    )
+    return expanded, 'bothsides' in references
 
 
 def _parse_slash_commands(text: str) -> tuple[list[str], str]:

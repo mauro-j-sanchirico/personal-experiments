@@ -2,6 +2,10 @@
 
 WNLC provides an interface to use natural language to generate Wolfram Language code, evaluate it, and display the result in a Jupyter notebook.
 
+The last successful calculation from `wc` or `wnlc` is available in the Wolfram session as `lhs` (the held input) and `rhs` (the evaluated output). For example, `wc('rhs^2')` uses the previous output, while `wc('ReleaseHold[lhs]')` evaluates the previous input again.
+
+In a natural-language `wnlc` prompt, use `!result` to operate on `rhs`, or `!bothsides` to apply the same operation to both sides and display their results as an equation. For example, `wnlc('Integrate !bothsides with respect to x')`. After a two-sided calculation, the displayed left and right results become the next held `lhs` and `rhs`. These references work in the default and `/calc` pipelines; `!result` also works with `/code`. Write `!!result` or `!!bothsides` to include either token literally.
+
 Use commands of the form `/command` to choose what WNLC should return. If no command is provided, the default pipeline is used.
 
 The following pipelines are provided:

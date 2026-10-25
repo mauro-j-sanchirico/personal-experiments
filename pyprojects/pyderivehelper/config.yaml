@@ -1,7 +1,6 @@
 openai_api_key_env_var: OPENAI_PERSONAL_MATH_ASSISTANT
 plot_directory: images
 plot_extension: .png
-result_str: rrr
 wolfram_code_validation_retry_count: 3
 wolfram_code_generator_system_prompt: |
   You are a Wolfram Language code generator.
