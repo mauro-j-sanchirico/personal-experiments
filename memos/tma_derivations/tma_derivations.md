@@ -123,15 +123,9 @@ The azimuth acceleration, $\ddot{\phi}(t) = \frac{d^2}{dt^2}\phi(t)$, is given b
 
 $$
 \ddot{\phi}(t) =
-\frac{r_x\ddot{r}_y-r_y\ddot{r}_x}
-{r_x^2+r_y^2}
+\frac{r_x\ddot{r}_y-r_y\ddot{r}_x}{r_x^2+r_y^2}
 -
-2\frac{
-\left(r_x\dot{r}_x+r_y\dot{r}_y\right)
-\left(r_x\dot{r}_y-r_y\dot{r}_x\right)
-}{
-\left(r_x^2+r_y^2\right)^2
-}.
+2\frac{(r_x\dot{r}_x+r_y\dot{r}_y)(r_x\dot{r}_y-r_y\dot{r}_x)}{(r_x^2+r_y^2)^2}.
 $$
 
 In geometric vector form, using the 2D scalar cross-product convention,
@@ -149,7 +143,7 @@ $$
 }.
 $$
 
-Substituting the first-derivative relationship, $\dot{\phi}(t) = \frac{\mathbf{r}\times\dot{\mathbf{r}}}{||\mathbf{r}||^2}$, gives
+Substituting the first-derivative relationship, $\dot{\phi}(t) = \frac{\mathbf{r}\times\dot{\mathbf{r}}}{\|\mathbf{r}\|^2}$, gives
 
 $$
 \ddot{\phi} =
