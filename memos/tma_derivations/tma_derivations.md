@@ -8,18 +8,18 @@
 
 The sensor position is denoted
 
-$$
+```math
 \mathbf{s}(t) =
 \begin{pmatrix}
 s_x(t) \\
 s_y(t)
 \end{pmatrix}.
-$$
+```
 
 The sensor velocity, $\dot{\mathbf{s}}(t) = \frac{d}{dt}\mathbf{s}(t)$, and sensor acceleration, $\ddot{\mathbf{s}}(t) = \frac{d^2}{dt^2}\mathbf{s}(t)$, are given as
 
 
-$$
+```math
 \dot{\mathbf{s}}(t) =
 \begin{pmatrix}
 \dot{s}_x(t) \\
@@ -31,21 +31,21 @@ $$
 \ddot{s}_x(t) \\
 \ddot{s}_y(t)
 \end{pmatrix}.
-$$
+```
 
 Similarly, the target position is denoted
 
-$$
+```math
 \mathbf{p}(t) =
 \begin{pmatrix}
 p_x(t) \\
 p_y(t)
 \end{pmatrix}.
-$$
+```
 
 The target velocity, $\dot{\mathbf{p}}(t) = \frac{d}{dt}\mathbf{p}(t)$, and target acceleration, $\ddot{\mathbf{p}}(t) = \frac{d^2}{dt^2}\mathbf{p}(t)$, are given as
 
-$$
+```math
 \dot{\mathbf{p}}(t) =
 \begin{pmatrix}
 \dot{p}_x(t) \\
@@ -57,11 +57,11 @@ $$
 \ddot{p}_x(t) \\
 \ddot{p}_y(t)
 \end{pmatrix}.
-$$
+```
 
 The relative position, or reference vector, between the target and the sensor is given as
 
-$$
+```math
 \begin{aligned}
 \mathbf{r}(t)
 &=
@@ -77,7 +77,7 @@ p_x(t) - s_x(t) \\
 p_y(t) - s_y(t)
 \end{pmatrix}.
 \end{aligned}
-$$
+```
 
 Similarly, the relative velocity and acceleration are denoted $\dot{\mathbf{r}}$ and $\ddot{\mathbf{r}}$ respectively.
 
@@ -85,39 +85,39 @@ Similarly, the relative velocity and acceleration are denoted $\dot{\mathbf{r}}$
 
 The azimuth angle, $\phi(t)$, is defined as the angle between the positive $x$-axis and the line of sight from the sensor to the target,
 
-$$
+```math
 \phi(t) = \textbf{atan2}(r_y, r_x).
-$$
+```
 
 Differentiating with respect to $t$ gives the azimuth rate,
 
-$$
+```math
 \dot{\phi}(t) =
 \frac{r_x\dot{r}_y - r_y\dot{r}_x}
 {r_x^2 + r_y^2}.
-$$
+```
 
 In geometric vector form,
 
-$$
+```math
 \dot{\phi}(t) =
 \frac{\mathbf{r} \times \dot{\mathbf{r}}}
 {\|\mathbf{r}\|^2}.
-$$
+```
 
 Formally, the conventional cross product produces a 3D vector, so the equation above relies on the 2D scalar cross-product convention, $\mathbf\times\mathbf \equiv a_xb_y-a_yb_x$.
 
 The cross product term reveals that azimuth rate is highest when relative velocity is perpendicular to relative position, i.e., $\dot{\mathbf{r}}$ is normal to $\mathbf{r}$. The denominator reveals that azimuth rate grows as the norm of relative position,
 
-$$
+```math
 \|r\|^2 = r_x^2 + r_y^2,
-$$
+```
 
 i.e., range squared, decreases. The equation assumes that range is non-zero. In practice, to keep calculations stable, range must be assumed larger than some minimum range, i.e.,
 
-$$
+```math
 \|\mathbf{r}\| > R_{\mathrm{MIN}}.
-$$
+```
 
 The azimuth acceleration, $\ddot{\phi}(t) = \frac{d^2}{dt^2}\phi(t)$, is given by
 
@@ -142,7 +142,13 @@ In geometric vector form, using the 2D scalar cross-product convention,
 }.
 ```
 
-Substituting the first-derivative relationship, $\dot{\phi}(t) = \frac{\mathbf{r}\times\dot{\mathbf{r}}}{\|\mathbf{r}\|^2}$, gives
+Substituting the first-derivative relationship,
+
+```math
+\dot{\phi}(t) = \frac{\mathbf{r}\times\dot{\mathbf{r}}}{\|\mathbf{r}\|^2},
+```
+
+gives
 
 ```math
 \ddot{\phi} =
