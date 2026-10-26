@@ -115,11 +115,12 @@ calculations.
 
 ### Linting and type checking
 
-From this directory, run Ruff for lint checks and mypy for static type checks:
+From this directory, run Ruff for lint checks and mypy for static type checks
+via the following, with the local virtual environment active:
 
 ```bash
-uv run ruff check src tests
-uv run mypy src tests
+uv run --active ruff check src tests
+uv run --active mypy src tests
 ```
 
 Both tools are included in the development dependencies installed by `uv sync`.

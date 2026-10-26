@@ -17,11 +17,17 @@ from dotenv import load_dotenv
 from IPython.display import Markdown, Math, display
 from openai import APIConnectionError, OpenAI
 from PIL import Image as PillowImage
-from pylatexenc.latexwalker import LatexWalker
-from wolframclient.evaluation import WolframLanguageSession
-from wolframclient.exception import WolframKernelException
-from wolframclient.language import wl, wlexpr
-from wolframclient.language.expression import WLSymbol
+from pylatexenc.latexwalker import LatexWalker  # type: ignore[import-untyped]
+from wolframclient.evaluation import (  # type: ignore[import-untyped]
+    WolframLanguageSession,
+)
+from wolframclient.exception import (  # type: ignore[import-untyped]
+    WolframKernelException,
+)
+from wolframclient.language import wl, wlexpr  # type: ignore[import-untyped]
+from wolframclient.language.expression import (  # type: ignore[import-untyped]
+    WLSymbol,
+)
 
 from pyderivehelper.agents import (
     TeXCodeFixer,
@@ -340,6 +346,7 @@ def wnlc(
                 slash_command_pipeline = _SLASH_COMMANDS[command]
                 result = slash_command_pipeline(prompt, model_str)
             _save_results_if_successful(save_names, result)
+            return None
         else:
             result = _wnlc_default_pipeline(prompt, model_str)
             _save_results_if_successful(save_names, result)
@@ -793,7 +800,7 @@ def _extract_mathjax_safe_tex(result: object) -> str:
     """Convert a Wolfram result to TeX and apply MathJax formatting fixes."""
     tex_str: str = str(ws.evaluate(wl.ToString(wl.TeXForm(result))))
     cleaned_tex_str: str = _fix_hypergeometric_functions(tex_str)
-    cleaned_tex_str: str = _fix_fbox(cleaned_tex_str)
+    cleaned_tex_str = _fix_fbox(cleaned_tex_str)
     return cleaned_tex_str
 
 

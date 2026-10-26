@@ -24,7 +24,7 @@ def test_api_call_sends_prompts_and_strips_response() -> None:
 
 
 def test_agent_sends_templated_prompt_to_api() -> None:
-    client = object()
+    client = Mock()
     agent = agents.WolframCodeGenerator(client, 'model')
     with patch.object(agents, 'make_openai_api_call', return_value='result') as call:
         assert agent.call('square x') == 'result'
@@ -47,13 +47,13 @@ def test_agent_sends_templated_prompt_to_api() -> None:
 def test_agent_templates_include_user_input(
     agent_type: Callable[[object, str], agents.Agent],
 ) -> None:
-    agent = agent_type(object(), 'model')
+    agent = agent_type(Mock(), 'model')
     assert 'sample input' in agent.template_prompt('sample input')
     assert agent.system_prompt
 
 
 def test_base_agent_requires_a_prompt_template() -> None:
-    agent = agents.Agent(object(), 'model', 'system')
+    agent = agents.Agent(Mock(), 'model', 'system')
     with pytest.raises(NotImplementedError):
         agent.template_prompt('prompt')
 

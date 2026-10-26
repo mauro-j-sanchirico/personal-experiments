@@ -4,6 +4,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from openai import OpenAI
+
 from pyderivehelper.config_file_management import load_config
 from pyderivehelper.openai_api import make_openai_api_call
 
@@ -33,7 +35,7 @@ class SystemPrompts:
 class Agent:
     """Share API-call behavior across agents with specialized prompt templates."""
 
-    def __init__(self, client: object, model: str, system_prompt: str) -> None:
+    def __init__(self, client: OpenAI, model: str, system_prompt: str) -> None:
         """Store the client, model, and system prompt for subsequent calls."""
         self.client = client
         self.model = model
@@ -60,7 +62,7 @@ class Agent:
 class WolframCodeGenerator(Agent):
     """Request Wolfram Language code from natural-language descriptions."""
 
-    def __init__(self, client: object, model: str) -> None:
+    def __init__(self, client: OpenAI, model: str) -> None:
         """Initialize the agent with the configured Wolfram generation prompt."""
         super().__init__(client, model, SystemPrompts.wolfram_code_generator)
 
@@ -77,7 +79,7 @@ class WolframCodeGenerator(Agent):
 class WolframCodeSanitizer(Agent):
     """Request corrections to Wolfram Language code before validation."""
 
-    def __init__(self, client: object, model: str) -> None:
+    def __init__(self, client: OpenAI, model: str) -> None:
         """Initialize the agent with the configured Wolfram sanitizer prompt."""
         super().__init__(client, model, SystemPrompts.wolfram_code_sanitizer)
 
@@ -95,7 +97,7 @@ class WolframCodeSanitizer(Agent):
 class WolframCodeFixer(Agent):
     """Request repairs to Wolfram Language code that failed evaluation."""
 
-    def __init__(self, client: object, model: str) -> None:
+    def __init__(self, client: OpenAI, model: str) -> None:
         """Initialize the agent with the configured Wolfram repair prompt."""
         super().__init__(client, model, SystemPrompts.wolfram_code_fixer)
 
@@ -114,7 +116,7 @@ class WolframCodeFixer(Agent):
 class WolframPlotSummarizer(Agent):
     """Request descriptive filenames for Wolfram Language plots."""
 
-    def __init__(self, client: object, model: str) -> None:
+    def __init__(self, client: OpenAI, model: str) -> None:
         """Initialize the agent with the configured plot summarization prompt."""
         super().__init__(client, model, SystemPrompts.wolfram_plot_summarizer)
 
@@ -132,7 +134,7 @@ class WolframPlotSummarizer(Agent):
 class TeXGenerator(Agent):
     """Request TeX source from natural-language descriptions."""
 
-    def __init__(self, client: object, model: str) -> None:
+    def __init__(self, client: OpenAI, model: str) -> None:
         """Initialize the agent with the configured TeX generation prompt."""
         super().__init__(client, model, SystemPrompts.tex_generator)
 
@@ -149,7 +151,7 @@ class TeXGenerator(Agent):
 class TeXCodeFixer(Agent):
     """Request repairs to TeX source that failed validation."""
 
-    def __init__(self, client: object, model: str) -> None:
+    def __init__(self, client: OpenAI, model: str) -> None:
         """Initialize the agent with the configured TeX repair prompt."""
         super().__init__(client, model, SystemPrompts.tex_code_fixer)
 
