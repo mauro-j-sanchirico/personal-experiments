@@ -7,7 +7,7 @@ import pytest
 os.environ.setdefault('OPENAI_PERSONAL_MATH_ASSISTANT', 'test-key')
 
 with patch('wolframclient.evaluation.WolframLanguageSession', autospec=True):
-    from pyderivehelper import wltools
+    from phdcalc import wltools
 
 
 @pytest.fixture(autouse=True)

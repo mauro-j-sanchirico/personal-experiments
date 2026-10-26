@@ -10,7 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "personal-experiments",
-    "pyderivehelper",
+    "phdcalc",
 ]
 
 [[package]]
@@ -2053,7 +2053,7 @@ dependencies = [
     { name = "notebook" },
     { name = "numpy" },
     { name = "pip" },
-    { name = "pyderivehelper" },
+    { name = "phdcalc" },
     { name = "pylatexenc" },
     { name = "pyyaml" },
 ]
@@ -2065,7 +2065,7 @@ requires-dist = [
     { name = "notebook", specifier = ">=7.5.6" },
     { name = "numpy", specifier = ">=2.4.3" },
     { name = "pip", specifier = ">=26.1" },
-    { name = "pyderivehelper", editable = "pyprojects/pyderivehelper" },
+    { name = "phdcalc", editable = "pyprojects/phdcalc" },
     { name = "pylatexenc", specifier = ">=2.10" },
     { name = "pyyaml", specifier = ">=6.0.3" },
 ]
@@ -2440,9 +2440,9 @@ wheels = [
 ]
 
 [[package]]
-name = "pyderivehelper"
+name = "phdcalc"
 version = "0.1.0"
-source = { editable = "pyprojects/pyderivehelper" }
+source = { editable = "pyprojects/phdcalc" }
 dependencies = [
     { name = "ipykernel" },
     { name = "ipympl" },

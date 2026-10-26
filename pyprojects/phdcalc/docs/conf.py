@@ -1,4 +1,4 @@
-project = 'PyDeriveHelper'
+project = 'PhDCalc'
 
 extensions = [
     'autoapi.extension',

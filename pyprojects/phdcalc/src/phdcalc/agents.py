@@ -6,8 +6,8 @@ from typing import Any
 
 from openai import OpenAI
 
-from pyderivehelper.config_file_management import load_config
-from pyderivehelper.openai_api import make_openai_api_call
+from phdcalc.config_file_management import load_config
+from phdcalc.openai_api import make_openai_api_call
 
 logger = logging.getLogger(__name__)
 

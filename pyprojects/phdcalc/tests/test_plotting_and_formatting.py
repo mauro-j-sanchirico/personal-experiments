@@ -3,8 +3,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from phdcalc import wltools
 from PIL import Image
-from pyderivehelper import wltools
 
 
 def test_plot_file_uses_configured_directory_and_extension(tmp_path: Path) -> None:
@@ -101,7 +101,7 @@ def test_print_tex_and_wolfram_result() -> None:
 
 
 def test_log_level_updates_module_and_agent_loggers() -> None:
-    agents_logger = logging.getLogger('pyderivehelper.agents')
+    agents_logger = logging.getLogger('phdcalc.agents')
     with (
         patch.object(wltools.logger, 'setLevel') as set_tools_level,
         patch.object(agents_logger, 'setLevel') as set_agents_level,

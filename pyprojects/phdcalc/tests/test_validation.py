@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from pyderivehelper import wltools
+from phdcalc import wltools
 
 
 @pytest.mark.parametrize(

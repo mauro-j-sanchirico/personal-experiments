@@ -29,7 +29,7 @@ from wolframclient.language.expression import (  # type: ignore[import-untyped]
     WLSymbol,
 )
 
-from pyderivehelper.agents import (
+from phdcalc.agents import (
     TeXCodeFixer,
     TeXGenerator,
     WolframCodeFixer,
@@ -37,8 +37,8 @@ from pyderivehelper.agents import (
     WolframCodeSanitizer,
     WolframPlotSummarizer,
 )
-from pyderivehelper.config_file_management import load_config
-from pyderivehelper.openai_api import OpenAIModels
+from phdcalc.config_file_management import load_config
+from phdcalc.openai_api import OpenAIModels
 
 # =============================================================================
 # Logger and config file setup
@@ -62,7 +62,7 @@ def set_log_level(level: str) -> None:
             set_log_level('DEBUG')
     """
     logger.setLevel(level.upper())
-    logging.getLogger('pyderivehelper.agents').setLevel(level.upper())
+    logging.getLogger('phdcalc.agents').setLevel(level.upper())
 
 
 _CONFIG: dict[str, str] = load_config()
@@ -528,7 +528,7 @@ def _evaluate_and_remember(
 ) -> object:
     """Evaluate once and update held lhs and evaluated rhs unless $Failed."""
     global _LAST_RESULT_AVAILABLE
-    result = ws.evaluate(wlexpr(f'PyDeriveHelper`pending = ({expr})'))
+    result = ws.evaluate(wlexpr(f'phdcalc`pending = ({expr})'))
     if result == WLSymbol('$Failed'):
         return result
     held_input = (
@@ -537,7 +537,7 @@ def _evaluate_and_remember(
         else wl.HoldComplete(left_result)
     )
     ws.evaluate(wl.Set(WLSymbol('Global`lhs'), held_input))
-    ws.evaluate(wlexpr('Global`rhs = PyDeriveHelper`pending'))
+    ws.evaluate(wlexpr('Global`rhs = phdcalc`pending'))
     _LAST_RESULT_AVAILABLE = True
     return result
 
@@ -562,8 +562,8 @@ def _hold_input(expr: str) -> object:
     held_input = wl.ToExpression(expr, wl.InputForm, wl.HoldComplete)
     if not _LAST_RESULT_AVAILABLE:
         return held_input
-    previous_lhs = WLSymbol('PyDeriveHelper`previousLhs')
-    previous_rhs = WLSymbol('PyDeriveHelper`previousRhs')
+    previous_lhs = WLSymbol('phdcalc`previousLhs')
+    previous_rhs = WLSymbol('phdcalc`previousRhs')
     return wl.With(
         wl.List(
             wl.Set(previous_lhs, WLSymbol('Global`lhs')),

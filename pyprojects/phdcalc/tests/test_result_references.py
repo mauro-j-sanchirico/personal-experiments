@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from httpx2 import Request
 from openai import APIConnectionError
-from pyderivehelper import wltools
+from phdcalc import wltools
 
 
 def test_kernel_start_failure_is_displayed_before_work() -> None:

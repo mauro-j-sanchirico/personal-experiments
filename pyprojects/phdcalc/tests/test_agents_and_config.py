@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
-from pyderivehelper import agents, config_file_management, openai_api
+from phdcalc import agents, config_file_management, openai_api
 
 
 def test_api_call_sends_prompts_and_strips_response() -> None:
