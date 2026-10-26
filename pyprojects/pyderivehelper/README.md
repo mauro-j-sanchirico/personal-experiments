@@ -5,6 +5,8 @@ calculations using Wolfram Language in a Jupyter notebook. Interfaces are
 provided for entering Wolfram Code directly and via natural language
 descriptions through OpenAI API calls.
 
+See full [API documentation](https://mauro-j-sanchirico.github.io/personal-experiments/) for more details.
+
 ## Description
 
 The `pyderivehelper` notebook interface provides two main functions:
