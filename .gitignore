@@ -1,8 +1,11 @@
 # Project-specific
 throwaway/jupyter/images/*
 !throwaway/jupyter/images/.gitkeep
-pyprojects/pyderivehelper/notebooks/images/*
-!pyprojects/pyderivehelper/notebooks/images/.gitkeep
+pyprojects/phdcalc/notebooks/images/*
+!pyprojects/phdcalc/notebooks/images/.gitkeep
+!pyprojects/phdcalc/notebooks/images/sin_and_taylor_series_plot_qxidwu3n.png
+!pyprojects/phdcalc/notebooks/images/tanh_complex_plot_gv8g4veh.png
+!pyprojects/phdcalc/notebooks/images/test.png
 
 
 # Byte-compiled / optimized / DLL files
@@ -56,6 +59,7 @@ coverage.xml
 *.py.cover
 .hypothesis/
 .pytest_cache/
+.pytest-tmp/
 cover/
 
 # Translations

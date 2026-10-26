@@ -8,7 +8,7 @@ variable. It also configures warning-level root logging if no handlers exist.
 
 import logging
 
-from pyderivehelper.wltools import (  # noqa: F401
+from phdcalc.wltools import (  # noqa: F401
     set_log_level,
     wc,
     wnlc,

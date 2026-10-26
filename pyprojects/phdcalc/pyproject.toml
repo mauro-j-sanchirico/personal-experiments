@@ -1,5 +1,5 @@
 [project]
-name = "pyderivehelper"
+name = "phdcalc"
 version = "0.1.0"
 description = "Python tools for performing mathematical derivations and calculations in Jupyter notebooks using Wolfram|Alpha and OpenAI APIs."
 readme = "README.md"

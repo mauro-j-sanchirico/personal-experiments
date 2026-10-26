@@ -1,15 +1,15 @@
-# PyDeriveHelper
+# PhDCalc
 
-`pyderivehelper` is a set of Python tools for performing mathematical
-calculations using Wolfram Language in a Jupyter notebook. Interfaces are
-provided for entering Wolfram Code directly and via natural language
-descriptions through OpenAI API calls.
+PhDCalc, short for Python Helper for Derivations and Calculations, is a set of
+Python tools for performing mathematical calculations using Wolfram Language
+in a Jupyter notebook. Interfaces are provided for entering Wolfram Code
+directly and via natural language descriptions through OpenAI API calls.
 
 See full [API documentation](https://mauro-j-sanchirico.github.io/personal-experiments/) for more details.
 
 ## Description
 
-The `pyderivehelper` notebook interface provides two main functions:
+The `phdcalc` notebook interface provides two main functions:
 
 - `wc(expr)` evaluates Wolfram Language directly, displays the raw result and
   an equation in TeX and rendered form, and returns the evaluated result.
@@ -21,7 +21,8 @@ input and result or named results.
 
 A number of pipelines are provided (see `help_message.md`) which can be invoked
 with commands of the form `/<pipeline>`. The default and `/calc` pipelines
-support exporting recognized plot expressions as images and display them in the notebook
+support exporting recognized plot expressions as images and display them in the
+notebook
 
 ## Dependencies
 
@@ -61,7 +62,7 @@ repair. Plot filenames always use `OpenAIModels.mini`, regardless of
 
 ## Installation
 
-From this directory, run `uv sync`. This installs `pyderivehelper` in `.venv`.
+From this directory, run `uv sync`. This installs `phdcalc` in `.venv`.
 
 Before importing the package, set `OPENAI_PERSONAL_MATH_ASSISTANT` in your
 environment or add a `.env` file in this project directory:
@@ -98,13 +99,13 @@ uv run pytest
 To run with coverage report, use
 
 ```bash
-uv run pytest --cov=pyderivehelper
+uv run pytest --cov=phdcalc
 ```
 
 or
 
 ```bash
-uv run pytest --cov=pyderivehelper --cov-report=term-missing tests
+uv run pytest --cov=phdcalc --cov-report=term-missing tests
 ```
 
 to report uncovered lines.
@@ -131,7 +132,7 @@ Ruff uses the repository's `ruff.toml`.
 ## Usage
 
 ```python
-from pyderivehelper import wc, wnlc
+from phdcalc import wc, wnlc
 
 wc('Expand[(x + 1)^2]')
 wnlc('Integrate x^2 with respect to x')
@@ -166,7 +167,7 @@ session. Refer to it as `!name` in later natural-language prompts, or use
 `name` directly in Wolfram code:
 
 ```python
-from pyderivehelper import wc, wnlc
+from phdcalc import wc, wnlc
 
 wnlc('/calc Expand (x + 1)^2 /saveas !poly1 !expandedPoly')
 wnlc('/calc Evaluate !poly1 at x = 2')
@@ -204,14 +205,15 @@ with slash commands.
 To show diagnostic logs:
 
 ```python
-from pyderivehelper import set_log_level
+from phdcalc import set_log_level
 
 set_log_level('DEBUG')
 ```
 
 ## License
 
-This project is provided with an MIT license (see `LICENSE` file). Additional dependencies have their own licenses which might apply depending on use case.
+This project is provided with an MIT license (see `LICENSE` file). Additional
+dependencies have their own licenses which might apply depending on use case.
 
 ### Wolfram Engine
 
@@ -219,4 +221,5 @@ For Wolfram Engine, see the [license FAQ](https://www.wolfram.com/engine/faq/).
 
 ## Contributing
 
-Please email Mauro Sanchirico sanchirico.mauro@gmail.com with questions, comments, bug reports, or suggestions for improvement.
+Please email Mauro Sanchirico sanchirico.mauro@gmail.com with questions,
+comments, bug reports, or suggestions for improvement.

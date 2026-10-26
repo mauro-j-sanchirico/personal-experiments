@@ -1,12 +1,12 @@
-name: pyderivehelper CI
+name: PhDCalc CI
 
 on:
   push:
     branches:
       - main
     paths:
-      - "pyprojects/pyderivehelper/**"
-      - ".github/workflows/pyderivehelper-ci.yml"
+      - "pyprojects/phdcalc/**"
+      - ".github/workflows/phdcalc-ci.yml"
       - ".python-version"
       - "pyproject.toml"
       - "ruff.toml"
@@ -14,8 +14,8 @@ on:
       - "uv.toml"
   pull_request:
     paths:
-      - "pyprojects/pyderivehelper/**"
-      - ".github/workflows/pyderivehelper-ci.yml"
+      - "pyprojects/phdcalc/**"
+      - ".github/workflows/phdcalc-ci.yml"
       - ".python-version"
       - "pyproject.toml"
       - "ruff.toml"
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: pyprojects/pyderivehelper
+        working-directory: pyprojects/phdcalc
 
     steps:
       - name: Check out repository
@@ -45,27 +45,27 @@ jobs:
           enable-cache: false
 
       - name: Install dependencies
-        run: uv sync --locked --package pyderivehelper --group docs
+        run: uv sync --locked --package phdcalc --group docs
 
       - name: Run pytest
-        run: uv run --locked --package pyderivehelper pytest
+        run: uv run --locked --package phdcalc pytest
 
       - name: Run mypy
-        run: uv run --locked --package pyderivehelper mypy src tests
+        run: uv run --locked --package phdcalc mypy src tests
 
       - name: Run Ruff
-        run: uv run --locked --package pyderivehelper ruff check src tests docs/conf.py
+        run: uv run --locked --package phdcalc ruff check src tests docs/conf.py
 
       - name: Build documentation
         run: >-
-          uv run --locked --package pyderivehelper --group docs
+          uv run --locked --package phdcalc --group docs
           sphinx-build -W -b html docs docs/_build/html
 
       - name: Upload GitHub Pages artifact
         if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: pyprojects/pyderivehelper/docs/_build/html
+          path: pyprojects/phdcalc/docs/_build/html
 
   deploy-docs:
     name: Deploy documentation

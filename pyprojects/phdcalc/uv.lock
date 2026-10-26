@@ -1685,7 +1685,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pyderivehelper"
+name = "phdcalc"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -30,7 +30,7 @@ the current Wolfram session. Refer to it as `!name` in later natural-language
 prompts, or use `name` directly in Wolfram code:
 
 ```python
-from pyderivehelper import wc, wnlc
+from phdcalc import wc, wnlc
 
 wnlc('/calc Expand (x + 1)^2 /saveas !poly1 !expandedPoly')
 wnlc('/calc Evaluate !poly1 at x = 2')
