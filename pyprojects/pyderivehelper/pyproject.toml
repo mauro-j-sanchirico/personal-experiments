@@ -25,6 +25,10 @@ dev = [
     "ruff",
     "types-PyYAML",
 ]
+docs = [
+    "sphinx",
+    "sphinx-autoapi",
+]
 
 [tool.pytest.ini_options]
 addopts = "--basetemp=.pytest-tmp"
