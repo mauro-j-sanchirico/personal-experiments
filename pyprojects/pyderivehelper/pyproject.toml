@@ -23,6 +23,7 @@ dev = [
     "pytest",
     "pytest-cov>=7.1.0",
     "ruff",
+    "types-PyYAML",
 ]
 
 [tool.pytest.ini_options]

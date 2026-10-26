@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from openai import OpenAI
+
 
 @dataclass(frozen=True)
 class OpenAIModels:
@@ -12,7 +14,12 @@ class OpenAIModels:
     full: str = 'gpt-5.4'
 
 
-def make_openai_api_call(client, model, system_prompt, prompt_template):
+def make_openai_api_call(
+    client: OpenAI,
+    model: str,
+    system_prompt: str,
+    prompt_template: str,
+) -> str:
     """Send system and user prompts and return stripped response text."""
     response = client.responses.create(
         model=model,
