@@ -116,19 +116,19 @@ $$
 i.e., range squared, decreases. The equation assumes that range is non-zero. In practice, to keep calculations stable, range must be assumed larger than some minimum range, i.e.,
 
 $$
-\|\mathbf{r}\| > R_\mathrm{MIN}.
+\|\mathbf{r}\| > R_{\mathrm{MIN}}.
 $$
 
 The azimuth acceleration, $\ddot{\phi}(t) = \frac{d^2}{dt^2}\phi(t)$, is given by
 
-$$
+```math
 \begin{aligned}
 \ddot{\phi}(t) =
 \frac{r_x\ddot{r}_y-r_y\ddot{r}_x}{r_x^2+r_y^2}
 -
 2\frac{(r_x\dot{r}_x+r_y\dot{r}_y)(r_x\dot{r}_y-r_y\dot{r}_x)}{(r_x^2+r_y^2)^2}.
 \end{aligned}
-$$
+```
 
 In geometric vector form, using the 2D scalar cross-product convention,
 
