@@ -1,0 +1,58 @@
+name: pyderivehelper CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "pyprojects/pyderivehelper/**"
+      - ".github/workflows/pyderivehelper-ci.yml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "ruff.toml"
+      - "uv.lock"
+      - "uv.toml"
+  pull_request:
+    paths:
+      - "pyprojects/pyderivehelper/**"
+      - ".github/workflows/pyderivehelper-ci.yml"
+      - ".python-version"
+      - "pyproject.toml"
+      - "ruff.toml"
+      - "uv.lock"
+      - "uv.toml"
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Tests and static analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pyprojects/pyderivehelper
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --locked --package pyderivehelper
+
+      - name: Run pytest
+        run: uv run --locked --package pyderivehelper pytest
+
+      - name: Run mypy
+        run: uv run --locked --package pyderivehelper mypy src tests
+
+      - name: Run Ruff
+        run: uv run --locked --package pyderivehelper ruff check src tests
