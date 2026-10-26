@@ -130,10 +130,9 @@ The azimuth acceleration, $\ddot{\phi}(t) = \frac{d^2}{dt^2}\phi(t)$, is given b
 
 In geometric vector form, using the 2D scalar cross-product convention,
 
-$$
+```math
 \ddot{\phi}(t) =
-\frac{\mathbf{r}\times\ddot{\mathbf{r}}}
-{\|\mathbf{r}\|^2}
+\frac{\mathbf{r}\times\ddot{\mathbf{r}}}{\|\mathbf{r}\|^2}
 -
 2\frac{
 \left(\mathbf{r}\cdot\dot{\mathbf{r}}\right)
@@ -141,18 +140,18 @@ $$
 }{
 \|\mathbf{r}\|^4
 }.
-$$
+```
 
 Substituting the first-derivative relationship, $\dot{\phi}(t) = \frac{\mathbf{r}\times\dot{\mathbf{r}}}{\|\mathbf{r}\|^2}$, gives
 
-$$
+```math
 \ddot{\phi} =
 \frac{\mathbf{r}\times\ddot{\mathbf{r}}}
 {\|\mathbf{r}\|^2}
 -
 2\frac{\mathbf{r}\cdot\dot{\mathbf{r}}}
 {\|\mathbf{r}\|^2}\dot{\phi}(t).
-$$
+```
 
 ### 1.2 Line of Sight (LOS) Vector
 
