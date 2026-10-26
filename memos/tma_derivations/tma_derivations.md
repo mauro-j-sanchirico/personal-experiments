@@ -86,7 +86,7 @@ Similarly, the relative velocity and acceleration are denoted $\dot{\mathbf{r}}$
 The azimuth angle, $\phi(t)$, is defined as the angle between the positive $x$-axis and the line of sight from the sensor to the target,
 
 $$
-\phi(t) = \operatorname{atan2}(r_y, r_x).
+\phi(t) = \textbf{atan2}(r_y, r_x).
 $$
 
 Differentiating with respect to $t$ gives the azimuth rate,
@@ -102,7 +102,7 @@ In geometric vector form,
 $$
 \dot{\phi}(t) =
 \frac{\mathbf{r} \times \dot{\mathbf{r}}}
-{||\mathbf{r}||^2}.
+{\|\mathbf{r}\|^2}.
 $$
 
 Formally, the conventional cross product produces a 3D vector, so the equation above relies on the 2D scalar cross-product convention, $\mathbf\times\mathbf \equiv a_xb_y-a_yb_x$.
@@ -110,13 +110,13 @@ Formally, the conventional cross product produces a 3D vector, so the equation a
 The cross product term reveals that azimuth rate is highest when relative velocity is perpendicular to relative position, i.e., $\dot{\mathbf{r}}$ is normal to $\mathbf{r}$. The denominator reveals that azimuth rate grows as the norm of relative position,
 
 $$
-||r||^2 = r_x^2 + r_y^2,
+\|r\|^2 = r_x^2 + r_y^2,
 $$
 
 i.e., range squared, decreases. The equation assumes that range is non-zero. In practice, to keep calculations stable, range must be assumed larger than some minimum range, i.e.,
 
 $$
-||\mathbf{r}|| > R_\mathrm{MIN}.
+\|\mathbf{r}\| > R_\mathrm{MIN}.
 $$
 
 The azimuth acceleration, $\ddot{\phi}(t) = \frac{d^2}{dt^2}\phi(t)$, is given by
