@@ -83,7 +83,7 @@ p_y(t) - s_y(t)
 \end{aligned}
 ```
 
-![](./figures/tma_relative_position.png){width=50%}
+![](./figures/tma_relative_position.png)
 
 Similarly, the relative velocity and acceleration are denoted
 
@@ -107,6 +107,8 @@ The azimuth angle, $\phi(t)$, is defined as the angle between the positive $x$-a
 \boxed{
 \phi(t) = \mathrm{atan2}(r_y, r_x)}.
 ```
+
+![](./figures/tma_azimuth_geometry.png)
 
 #### 1.2.2 Azimuth Rate
 
