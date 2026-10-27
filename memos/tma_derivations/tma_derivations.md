@@ -83,6 +83,8 @@ p_y(t) - s_y(t)
 \end{aligned}
 ```
 
+![](./figures/tma_relative_position.png){width=50%}
+
 Similarly, the relative velocity and acceleration are denoted
 
 ```math
@@ -103,7 +105,7 @@ The azimuth angle, $\phi(t)$, is defined as the angle between the positive $x$-a
 
 ```math
 \boxed{
-\phi(t) = \textbf{atan2}(r_y, r_x)}.
+\phi(t) = \mathrm{atan2}(r_y, r_x)}.
 ```
 
 #### 1.2.2 Azimuth Rate
@@ -1390,7 +1392,7 @@ In 2D coordinates, using the scalar cross-product convention $\mathbf{a}\times\m
 
 ```math
 \begin{aligned}
-\phi(t) &= \operatorname{atan2}(r_y,r_x) \\[6pt]
+\phi(t) &= \mathrm{atan2}(r_y,r_x) \\[6pt]
 \dot{\phi}(t) &=
 \frac{\mathbf{r}\times\dot{\mathbf{r}}}
 {\|\mathbf{r}\|^2} \\[6pt]
@@ -1414,7 +1416,7 @@ In 3D coordinates, with horizontal range $\rho_h=\sqrt{r_x^2+r_y^2}$:
 
 ```math
 \begin{aligned}
-\phi(t) &= \operatorname{atan2}(r_y,r_x) \\[6pt]
+\phi(t) &= \mathrm{atan2}(r_y,r_x) \\[6pt]
 \dot{\phi}(t) &=
 \frac{(\mathbf{r}\times\dot{\mathbf{r}})\cdot\hat{\mathbf{z}}}
 {\rho_h^2} \\[6pt]
@@ -1423,7 +1425,7 @@ In 3D coordinates, with horizontal range $\rho_h=\sqrt{r_x^2+r_y^2}$:
 {\rho_h^2}
 -
 2\frac{\dot{\rho}_h}{\rho_h}\dot{\phi} \\[10pt]
-\theta(t) &= \operatorname{atan2}(r_z,\rho_h) \\[6pt]
+\theta(t) &= \mathrm{atan2}(r_z,\rho_h) \\[6pt]
 \dot{\theta}(t) &=
 \frac{\rho_h\dot{r}_z-r_z\dot{\rho}_h}{\rho^2} \\[6pt]
 \ddot{\theta}(t) &=
