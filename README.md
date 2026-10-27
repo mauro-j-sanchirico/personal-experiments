@@ -4,7 +4,7 @@ Personal monorepo for experiments, research, and prototyping.
 
 ## PDF Memos
 
-A number of memos and notes on topics of interest are available through this repository:
+A number of memos and notes on topics of interest are available here:
 
 - [Target Motion Analysis (TMA) Equations of Motion](https://mauro-j-sanchirico.github.io/personal-experiments/memos/tma_derivations/tma_derivations.pdf)
 
