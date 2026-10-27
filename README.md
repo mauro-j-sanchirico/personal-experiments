@@ -2,6 +2,12 @@
 
 Personal monorepo for experiments, research, and prototyping.
 
+## PDF Memos
+
+A number of memos and notes on topics of interest are available through this repository:
+
+- [Target Motion Analysis (TMA) Equations of Motion](https://mauro-j-sanchirico.github.io/personal-experiments/memos/tma_derivations/tma_derivations.pdf)
+
 ## Python Project Configurations
 
 The root `pyproject.toml` defines the `personal-experiments` project and its dependencies for general work and notebooks. Its `[tool.uv.workspace]` section explicitly lists projects under `pyprojects`; currently, only `pyprojects/phdcalc` is listed. Adding a sibling directory alone does not register it as a workspace member.

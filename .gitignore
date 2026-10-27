@@ -1,4 +1,5 @@
 # Project-specific
+memos/**/*.pdf
 throwaway/jupyter/images/*
 !throwaway/jupyter/images/.gitkeep
 pyprojects/phdcalc/notebooks/images/*
