@@ -13,9 +13,7 @@ function Pandoc(doc)
 
   -- Add document metadata
   doc.meta.author = pandoc.MetaInlines({
-    pandoc.Str("Mauro J. Sanchirico III"),
-    pandoc.LineBreak(),
-    pandoc.Str("sanchirico.mauro@gmail.com")
+    pandoc.Str("Mauro J. Sanchirico III")
   })
 
   doc.meta.date = pandoc.MetaInlines({
