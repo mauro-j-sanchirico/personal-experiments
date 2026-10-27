@@ -1769,4 +1769,3 @@ Alternatively, the azimuth-transverse acceleration equation can be expressed in 
 ```
 
 All expressions assume sufficiently smooth trajectories, nonzero scalar range, and nonzero horizontal range wherever azimuth or its derivatives are used in 3D.
-
