@@ -10,6 +10,7 @@ while IFS= read -r markdown; do
 
     pandoc "$markdown" \
         -f gfm \
+        --resource-path="$(dirname "$markdown")" \
         -o "${markdown%.md}.pdf" \
         --pdf-engine=xelatex \
         --lua-filter=pandoc-title.lua \
