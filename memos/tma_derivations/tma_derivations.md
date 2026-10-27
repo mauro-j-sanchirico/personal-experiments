@@ -330,12 +330,10 @@ We can use these basis vectors and their derivatives to re-express the equations
 ```math
 \begin{aligned}
 \mathbf{p} &= \mathbf{s} + \rho(t)\hat{\mathbf{u}}, \\
-
 \dot{\mathbf{p}} &=
 \dot{\mathbf{s}}
 + \dot{\rho}(t)\hat{\mathbf{u}}
 + \rho(t)\dot{\phi}(t)\hat{\mathbf{v}}, \\
-
 \ddot{\mathbf{p}} &=
 \ddot{\mathbf{s}}
 + \left(\ddot{\rho}(t)-\rho(t)\dot{\phi}^2(t)\right)\hat{\mathbf{u}}
@@ -1393,11 +1391,9 @@ In 2D coordinates, using the scalar cross-product convention $\mathbf{a}\times\m
 ```math
 \begin{aligned}
 \phi(t) &= \operatorname{atan2}(r_y,r_x) \\[6pt]
-
 \dot{\phi}(t) &=
 \frac{\mathbf{r}\times\dot{\mathbf{r}}}
 {\|\mathbf{r}\|^2} \\[6pt]
-
 \ddot{\phi}(t) &=
 \frac{\mathbf{r}\times\ddot{\mathbf{r}}}{\|\mathbf{r}\|^2}
 -
@@ -1405,7 +1401,6 @@ In 2D coordinates, using the scalar cross-product convention $\mathbf{a}\times\m
 (\mathbf{r}\cdot\dot{\mathbf{r}})
 (\mathbf{r}\times\dot{\mathbf{r}})
 }{\|\mathbf{r}\|^4} \\[6pt]
-
 \ddot{\phi}(t) &=
 \frac{\mathbf{r}\times\ddot{\mathbf{r}}}
 {\|\mathbf{r}\|^2}
@@ -1420,22 +1415,17 @@ In 3D coordinates, with horizontal range $\rho_h=\sqrt{r_x^2+r_y^2}$:
 ```math
 \begin{aligned}
 \phi(t) &= \operatorname{atan2}(r_y,r_x) \\[6pt]
-
 \dot{\phi}(t) &=
 \frac{(\mathbf{r}\times\dot{\mathbf{r}})\cdot\hat{\mathbf{z}}}
 {\rho_h^2} \\[6pt]
-
 \ddot{\phi}(t) &=
 \frac{(\mathbf{r}\times\ddot{\mathbf{r}})\cdot\hat{\mathbf{z}}}
 {\rho_h^2}
 -
 2\frac{\dot{\rho}_h}{\rho_h}\dot{\phi} \\[10pt]
-
 \theta(t) &= \operatorname{atan2}(r_z,\rho_h) \\[6pt]
-
 \dot{\theta}(t) &=
 \frac{\rho_h\dot{r}_z-r_z\dot{\rho}_h}{\rho^2} \\[6pt]
-
 \ddot{\theta}(t) &=
 \frac{\rho_h\ddot{r}_z-r_z\ddot{\rho}_h}{\rho^2}
 -
@@ -1454,14 +1444,12 @@ In 2D coordinates:
 \cos\phi\\
 \sin\phi
 \end{pmatrix} \\[8pt]
-
 \dot{\hat{\mathbf{r}}} &=
 \dot{\phi}
 \begin{pmatrix}
 -\sin\phi\\
 \cos\phi
 \end{pmatrix} \\[8pt]
-
 \ddot{\hat{\mathbf{r}}} &=
 \ddot{\phi}
 \begin{pmatrix}
@@ -1515,7 +1503,7 @@ Its derivatives can be expressed using the LOS-transverse basis vectors defined 
 \end{aligned}
 ```
 
-### A.3 Range and Range Rate
+### A.3 Range, Range Rate, and Acceleration
 
 In both 2D and 3D coordinates:
 
@@ -1539,10 +1527,8 @@ Additionally, in 3D coordinates:
 \begin{aligned}
 \rho_h &= \sqrt{r_x^2+r_y^2}
 =\rho\cos\theta \\[6pt]
-
 \dot{\rho}_h &=
 \frac{r_x\dot{r}_x+r_y\dot{r}_y}{\rho_h} \\[6pt]
-
 \ddot{\rho}_h &=
 \frac{
 \dot{r}_x^2+\dot{r}_y^2+
@@ -1560,12 +1546,10 @@ In both 2D and 3D coordinates:
 \begin{aligned}
 \mathbf{p} &=
 \mathbf{s}+\rho\hat{\mathbf{r}} \\[8pt]
-
 \dot{\mathbf{p}} &=
 \dot{\mathbf{s}}
 +\dot{\rho}\hat{\mathbf{r}}
 +\rho\dot{\hat{\mathbf{r}}} \\[8pt]
-
 \ddot{\mathbf{p}} &=
 \ddot{\mathbf{s}}
 +\ddot{\rho}\hat{\mathbf{r}}
@@ -1585,7 +1569,6 @@ In 2D coordinates:
 \cos\phi\\
 \sin\phi
 \end{pmatrix} \\[8pt]
-
 \hat{\mathbf{v}} &=
 \begin{pmatrix}
 -\sin\phi\\
@@ -1615,14 +1598,12 @@ In 3D coordinates:
 \cos\theta\sin\phi\\
 \sin\theta
 \end{pmatrix} \\[8pt]
-
 \hat{\mathbf{v}} &=
 \begin{pmatrix}
 -\sin\phi\\
 \cos\phi\\
 0
 \end{pmatrix} \\[8pt]
-
 \hat{\mathbf{w}} &=
 \begin{pmatrix}
 -\sin\theta\cos\phi\\
@@ -1639,11 +1620,9 @@ The basis-vector derivatives are
 \dot{\hat{\mathbf{u}}} &=
 \dot{\phi}\cos\theta\,\hat{\mathbf{v}}
 +\dot{\theta}\hat{\mathbf{w}} \\[6pt]
-
 \dot{\hat{\mathbf{v}}} &=
 -\dot{\phi}\cos\theta\,\hat{\mathbf{u}}
 +\dot{\phi}\sin\theta\,\hat{\mathbf{w}} \\[6pt]
-
 \dot{\hat{\mathbf{w}}} &=
 -\dot{\theta}\hat{\mathbf{u}}
 -\dot{\phi}\sin\theta\,\hat{\mathbf{v}}
@@ -1659,7 +1638,6 @@ In 2D coordinates, the velocity projections are
 \dot{\rho} &=
 (\dot{\mathbf{p}}-\dot{\mathbf{s}})
 \cdot\hat{\mathbf{u}} \\[6pt]
-
 \rho\dot{\phi} &=
 (\dot{\mathbf{p}}-\dot{\mathbf{s}})
 \cdot\hat{\mathbf{v}}
@@ -1673,7 +1651,6 @@ The acceleration projections are
 \ddot{\rho}-\rho\dot{\phi}^2 &=
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
 \cdot\hat{\mathbf{u}} \\[8pt]
-
 2\dot{\rho}\dot{\phi}+\rho\ddot{\phi} &=
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
 \cdot\hat{\mathbf{v}}
@@ -1688,7 +1665,6 @@ Solving for range and azimuth acceleration gives
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
 \cdot\hat{\mathbf{u}}
 +\rho\dot{\phi}^2 \\[8pt]
-
 \ddot{\phi} &=
 \frac{
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
@@ -1705,11 +1681,9 @@ In 3D coordinates, the velocity projections are
 \dot{\rho} &=
 (\dot{\mathbf{p}}-\dot{\mathbf{s}})
 \cdot\hat{\mathbf{u}} \\[6pt]
-
 \rho\dot{\phi}\cos\theta &=
 (\dot{\mathbf{p}}-\dot{\mathbf{s}})
 \cdot\hat{\mathbf{v}} \\[6pt]
-
 \rho\dot{\theta} &=
 (\dot{\mathbf{p}}-\dot{\mathbf{s}})
 \cdot\hat{\mathbf{w}}
@@ -1725,14 +1699,12 @@ The acceleration projections are
 &=
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
 \cdot\hat{\mathbf{u}} \\[10pt]
-
 \rho\ddot{\phi}\cos\theta
 +2\dot{\rho}\dot{\phi}\cos\theta
 -2\rho\dot{\phi}\dot{\theta}\sin\theta
 &=
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
 \cdot\hat{\mathbf{v}} \\[10pt]
-
 \rho\ddot{\theta}
 +2\dot{\rho}\dot{\theta}
 +\rho\dot{\phi}^2\sin\theta\cos\theta
@@ -1750,7 +1722,6 @@ Solving for range, azimuth, and elevation acceleration gives
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
 \cdot\hat{\mathbf{u}}
 +\rho(\dot{\theta}^2+\dot{\phi}^2\cos^2\theta) \\[10pt]
-
 \ddot{\phi} &=
 \frac{
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
@@ -1758,7 +1729,6 @@ Solving for range, azimuth, and elevation acceleration gives
 }{\rho\cos\theta}
 -2\frac{\dot{\rho}}{\rho}\dot{\phi}
 +2\dot{\phi}\dot{\theta}\tan\theta \\[10pt]
-
 \ddot{\theta} &=
 \frac{
 (\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
