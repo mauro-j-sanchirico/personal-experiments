@@ -1383,3 +1383,399 @@ Equivalently, solving for elevation acceleration,
 The six projected equations describe the radial, azimuth-transverse, and elevation-transverse components of relative velocity and acceleration. As in 2D, the additional angular-rate terms arise from differentiating the rotating LTF basis vectors rather than from independently assumed target accelerations.
 
 The azimuth-transverse relationships require $\rho_h>0$, while the range-based expressions require $\rho>0$.
+
+## Appendix
+
+### A.1 Angles, Angle Rates, and Accelerations
+
+In 2D coordinates, using the scalar cross-product convention $\mathbf{a}\times\mathbf{b}=a_xb_y-a_yb_x$:
+
+```math
+\begin{aligned}
+\phi(t) &= \operatorname{atan2}(r_y,r_x) \\[6pt]
+
+\dot{\phi}(t) &=
+\frac{\mathbf{r}\times\dot{\mathbf{r}}}
+{\|\mathbf{r}\|^2} \\[6pt]
+
+\ddot{\phi}(t) &=
+\frac{\mathbf{r}\times\ddot{\mathbf{r}}}{\|\mathbf{r}\|^2}
+-
+2\frac{
+(\mathbf{r}\cdot\dot{\mathbf{r}})
+(\mathbf{r}\times\dot{\mathbf{r}})
+}{\|\mathbf{r}\|^4} \\[6pt]
+
+\ddot{\phi}(t) &=
+\frac{\mathbf{r}\times\ddot{\mathbf{r}}}
+{\|\mathbf{r}\|^2}
+-
+2\frac{\mathbf{r}\cdot\dot{\mathbf{r}}}
+{\|\mathbf{r}\|^2}\dot{\phi}
+\end{aligned}
+```
+
+In 3D coordinates, with horizontal range $\rho_h=\sqrt{r_x^2+r_y^2}$:
+
+```math
+\begin{aligned}
+\phi(t) &= \operatorname{atan2}(r_y,r_x) \\[6pt]
+
+\dot{\phi}(t) &=
+\frac{(\mathbf{r}\times\dot{\mathbf{r}})\cdot\hat{\mathbf{z}}}
+{\rho_h^2} \\[6pt]
+
+\ddot{\phi}(t) &=
+\frac{(\mathbf{r}\times\ddot{\mathbf{r}})\cdot\hat{\mathbf{z}}}
+{\rho_h^2}
+-
+2\frac{\dot{\rho}_h}{\rho_h}\dot{\phi} \\[10pt]
+
+\theta(t) &= \operatorname{atan2}(r_z,\rho_h) \\[6pt]
+
+\dot{\theta}(t) &=
+\frac{\rho_h\dot{r}_z-r_z\dot{\rho}_h}{\rho^2} \\[6pt]
+
+\ddot{\theta}(t) &=
+\frac{\rho_h\ddot{r}_z-r_z\ddot{\rho}_h}{\rho^2}
+-
+2\frac{\dot{\rho}}{\rho}\dot{\theta}
+\end{aligned}
+```
+
+### A.2 Line of Sight (LOS) Vector
+
+In 2D coordinates:
+
+```math
+\begin{aligned}
+\hat{\mathbf{r}} &=
+\begin{pmatrix}
+\cos\phi\\
+\sin\phi
+\end{pmatrix} \\[8pt]
+
+\dot{\hat{\mathbf{r}}} &=
+\dot{\phi}
+\begin{pmatrix}
+-\sin\phi\\
+\cos\phi
+\end{pmatrix} \\[8pt]
+
+\ddot{\hat{\mathbf{r}}} &=
+\ddot{\phi}
+\begin{pmatrix}
+-\sin\phi\\
+\cos\phi
+\end{pmatrix}
+-
+\dot{\phi}^2
+\begin{pmatrix}
+\cos\phi\\
+\sin\phi
+\end{pmatrix}
+\end{aligned}
+```
+
+In 3D coordinates:
+
+```math
+\hat{\mathbf{r}} =
+\begin{pmatrix}
+\cos\theta\cos\phi\\
+\cos\theta\sin\phi\\
+\sin\theta
+\end{pmatrix}
+```
+
+Its derivatives can be expressed using the LOS-transverse basis vectors defined in Section A.5:
+
+```math
+\dot{\hat{\mathbf{r}}}
+=
+\dot{\phi}\cos\theta\,\hat{\mathbf{v}}
++
+\dot{\theta}\,\hat{\mathbf{w}}
+```
+
+```math
+\begin{aligned}
+\ddot{\hat{\mathbf{r}}}
+={}&
+-(\dot{\theta}^2+\dot{\phi}^2\cos^2\theta)
+\hat{\mathbf{u}}\\
+&+
+(\ddot{\phi}\cos\theta
+-2\dot{\phi}\dot{\theta}\sin\theta)
+\hat{\mathbf{v}}\\
+&+
+(\ddot{\theta}
++\dot{\phi}^2\sin\theta\cos\theta)
+\hat{\mathbf{w}}
+\end{aligned}
+```
+
+### A.3 Range and Range Rate
+
+In both 2D and 3D coordinates:
+
+```math
+\begin{aligned}
+\mathbf{r} &= \mathbf{p}-\mathbf{s} \\[6pt]
+\rho &= \|\mathbf{r}\| \\[6pt]
+\dot{\rho} &= \frac{\mathbf{r}\cdot\dot{\mathbf{r}}}{\rho} \\[6pt]
+\ddot{\rho} &=
+\frac{
+\dot{\mathbf{r}}\cdot\dot{\mathbf{r}}
++\mathbf{r}\cdot\ddot{\mathbf{r}}
+-\dot{\rho}^2
+}{\rho}
+\end{aligned}
+```
+
+Additionally, in 3D coordinates:
+
+```math
+\begin{aligned}
+\rho_h &= \sqrt{r_x^2+r_y^2}
+=\rho\cos\theta \\[6pt]
+
+\dot{\rho}_h &=
+\frac{r_x\dot{r}_x+r_y\dot{r}_y}{\rho_h} \\[6pt]
+
+\ddot{\rho}_h &=
+\frac{
+\dot{r}_x^2+\dot{r}_y^2+
+r_x\ddot{r}_x+r_y\ddot{r}_y
+-\dot{\rho}_h^2
+}{\rho_h}
+\end{aligned}
+```
+
+### A.4 Equations of Target Motion
+
+In both 2D and 3D coordinates:
+
+```math
+\begin{aligned}
+\mathbf{p} &=
+\mathbf{s}+\rho\hat{\mathbf{r}} \\[8pt]
+
+\dot{\mathbf{p}} &=
+\dot{\mathbf{s}}
++\dot{\rho}\hat{\mathbf{r}}
++\rho\dot{\hat{\mathbf{r}}} \\[8pt]
+
+\ddot{\mathbf{p}} &=
+\ddot{\mathbf{s}}
++\ddot{\rho}\hat{\mathbf{r}}
++2\dot{\rho}\dot{\hat{\mathbf{r}}}
++\rho\ddot{\hat{\mathbf{r}}}
+\end{aligned}
+```
+
+### A.5 LOS and Transverse Coordinate Frame
+
+In 2D coordinates:
+
+```math
+\begin{aligned}
+\hat{\mathbf{u}} &=
+\begin{pmatrix}
+\cos\phi\\
+\sin\phi
+\end{pmatrix} \\[8pt]
+
+\hat{\mathbf{v}} &=
+\begin{pmatrix}
+-\sin\phi\\
+\cos\phi
+\end{pmatrix}
+\end{aligned}
+```
+
+The basis-vector derivatives are
+
+```math
+\begin{aligned}
+\dot{\hat{\mathbf{u}}}
+&=\dot{\phi}\hat{\mathbf{v}}\\[6pt]
+\dot{\hat{\mathbf{v}}}
+&=-\dot{\phi}\hat{\mathbf{u}}.
+\end{aligned}
+```
+
+In 3D coordinates:
+
+```math
+\begin{aligned}
+\hat{\mathbf{u}} &=
+\begin{pmatrix}
+\cos\theta\cos\phi\\
+\cos\theta\sin\phi\\
+\sin\theta
+\end{pmatrix} \\[8pt]
+
+\hat{\mathbf{v}} &=
+\begin{pmatrix}
+-\sin\phi\\
+\cos\phi\\
+0
+\end{pmatrix} \\[8pt]
+
+\hat{\mathbf{w}} &=
+\begin{pmatrix}
+-\sin\theta\cos\phi\\
+-\sin\theta\sin\phi\\
+\cos\theta
+\end{pmatrix}
+\end{aligned}
+```
+
+The basis-vector derivatives are
+
+```math
+\begin{aligned}
+\dot{\hat{\mathbf{u}}} &=
+\dot{\phi}\cos\theta\,\hat{\mathbf{v}}
++\dot{\theta}\hat{\mathbf{w}} \\[6pt]
+
+\dot{\hat{\mathbf{v}}} &=
+-\dot{\phi}\cos\theta\,\hat{\mathbf{u}}
++\dot{\phi}\sin\theta\,\hat{\mathbf{w}} \\[6pt]
+
+\dot{\hat{\mathbf{w}}} &=
+-\dot{\theta}\hat{\mathbf{u}}
+-\dot{\phi}\sin\theta\,\hat{\mathbf{v}}
+\end{aligned}
+```
+
+### A.6 LOS and Transverse Equations of Motion
+
+In 2D coordinates, the velocity projections are
+
+```math
+\begin{aligned}
+\dot{\rho} &=
+(\dot{\mathbf{p}}-\dot{\mathbf{s}})
+\cdot\hat{\mathbf{u}} \\[6pt]
+
+\rho\dot{\phi} &=
+(\dot{\mathbf{p}}-\dot{\mathbf{s}})
+\cdot\hat{\mathbf{v}}
+\end{aligned}
+```
+
+The acceleration projections are
+
+```math
+\begin{aligned}
+\ddot{\rho}-\rho\dot{\phi}^2 &=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{u}} \\[8pt]
+
+2\dot{\rho}\dot{\phi}+\rho\ddot{\phi} &=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{v}}
+\end{aligned}
+```
+
+Solving for range and azimuth acceleration gives
+
+```math
+\begin{aligned}
+\ddot{\rho} &=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{u}}
++\rho\dot{\phi}^2 \\[8pt]
+
+\ddot{\phi} &=
+\frac{
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{v}}
+-2\dot{\rho}\dot{\phi}
+}{\rho}
+\end{aligned}
+```
+
+In 3D coordinates, the velocity projections are
+
+```math
+\begin{aligned}
+\dot{\rho} &=
+(\dot{\mathbf{p}}-\dot{\mathbf{s}})
+\cdot\hat{\mathbf{u}} \\[6pt]
+
+\rho\dot{\phi}\cos\theta &=
+(\dot{\mathbf{p}}-\dot{\mathbf{s}})
+\cdot\hat{\mathbf{v}} \\[6pt]
+
+\rho\dot{\theta} &=
+(\dot{\mathbf{p}}-\dot{\mathbf{s}})
+\cdot\hat{\mathbf{w}}
+\end{aligned}
+```
+
+The acceleration projections are
+
+```math
+\begin{aligned}
+\ddot{\rho}
+-\rho(\dot{\theta}^2+\dot{\phi}^2\cos^2\theta)
+&=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{u}} \\[10pt]
+
+\rho\ddot{\phi}\cos\theta
++2\dot{\rho}\dot{\phi}\cos\theta
+-2\rho\dot{\phi}\dot{\theta}\sin\theta
+&=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{v}} \\[10pt]
+
+\rho\ddot{\theta}
++2\dot{\rho}\dot{\theta}
++\rho\dot{\phi}^2\sin\theta\cos\theta
+&=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{w}}
+\end{aligned}
+```
+
+Solving for range, azimuth, and elevation acceleration gives
+
+```math
+\begin{aligned}
+\ddot{\rho} &=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{u}}
++\rho(\dot{\theta}^2+\dot{\phi}^2\cos^2\theta) \\[10pt]
+
+\ddot{\phi} &=
+\frac{
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{v}}
+}{\rho\cos\theta}
+-2\frac{\dot{\rho}}{\rho}\dot{\phi}
++2\dot{\phi}\dot{\theta}\tan\theta \\[10pt]
+
+\ddot{\theta} &=
+\frac{
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{w}}
+}{\rho}
+-2\frac{\dot{\rho}}{\rho}\dot{\theta}
+-\dot{\phi}^2\sin\theta\cos\theta
+\end{aligned}
+```
+
+Alternatively, the azimuth-transverse acceleration equation can be expressed in terms of horizontal range:
+
+```math
+\rho_h\ddot{\phi}+2\dot{\rho}_h\dot{\phi}
+=
+(\ddot{\mathbf{p}}-\ddot{\mathbf{s}})
+\cdot\hat{\mathbf{v}}.
+```
+
+All expressions assume sufficiently smooth trajectories, nonzero scalar range, and nonzero horizontal range wherever azimuth or its derivatives are used in 3D.
