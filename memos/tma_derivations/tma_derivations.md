@@ -85,6 +85,8 @@ p_y(t) - s_y(t)
 
 ![](./figures/tma_relative_position.png)
 
+**Figure 1**: Sensor and target absolute and relative positions.
+
 Similarly, the relative velocity and acceleration are denoted
 
 ```math
@@ -109,6 +111,8 @@ The azimuth angle, $\phi(t)$, is defined as the angle between the positive $x$-a
 ```
 
 ![](./figures/tma_azimuth_geometry.png)
+
+**Figure 2**: Sensor and target absolute and relative positions with azimuth geometry.
 
 #### 1.2.2 Azimuth Rate
 
@@ -319,6 +323,10 @@ The two vectors form a right-handed orthonormal basis, satisfying
 \hat{\mathbf{u}}\times\hat{\mathbf{v}} = 1.
 ```
 
+![](./figures/tma_ltf_frame.png)
+
+**Figure 3**: Sensor and target absolute and relative positions with TMF basis vectors.
+
 #### 1.5.2 Target Equations of Motion Expressed using the LTF
 
 The time derivatives of the LOS-transverse basis vectors are
@@ -479,6 +487,10 @@ Equivalently, solving for azimuth acceleration,
 }{\rho}
 }.
 ```
+
+![](./figures/tma_los_transverse_acceleration.png)
+
+**Figure 4.** Transverse and line of sight acceleration components denoted $a_T$ and $a_L$ respectively.
 
 ## 2 Derivations for 3-Dimensional Cartesian Coordinates
 
@@ -1385,6 +1397,10 @@ Equivalently, solving for elevation acceleration,
 The six projected equations describe the radial, azimuth-transverse, and elevation-transverse components of relative velocity and acceleration. As in 2D, the additional angular-rate terms arise from differentiating the rotating LTF basis vectors rather than from independently assumed target accelerations.
 
 The azimuth-transverse relationships require $\rho_h>0$, while the range-based expressions require $\rho>0$.
+
+![](./figures/tma_3d_acceleration.png)
+
+**Figure 5**. Sensor and target absolute and relative positions with local LTF basis vectors and target line of sight acceleration, transverse azimuth, and transverse elevation components, denoted $a_{L}$, $a_{\phi}$, $a_{\theta}$ in the figure respectively.
 
 ## Appendix
 
