@@ -27,6 +27,7 @@ while IFS= read -r source; do
         --lua-filter=pandoc-title.lua \
         --lua-filter=pandoc-abstract.lua \
         --include-in-header=pandoc-header.tex \
+        --number-sections \
         --toc \
         --toc-depth=2 \
         -V geometry:margin=1in

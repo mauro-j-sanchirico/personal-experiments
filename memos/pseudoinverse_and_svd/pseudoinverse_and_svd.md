@@ -12,35 +12,35 @@
 <br>
 <br>
 
-## 1 Warmup Exercises
+## Warmup Exercises
 
-### 1.1 Extreme Points in Scalar Optimization Problems
+### Extreme Points in Scalar Optimization Problems
 
-### 1.2 Lagrange Multipliers
+### Lagrange Multipliers
 
-## 2 Deriving the Pseudoinverse via Vector Calculus
+## Deriving the Pseudoinverse via Vector Calculus
 
-### 2.1 Derivation
+### Derivation
 
-### 2.2 Interpretation as a Projection
+### Interpretation as a Projection
 
-### 2.3 Underdetermined Systems
+### Underdetermined Systems
 
-## 3 Obtaining the Singular Value Decomposition (SVD) via Constrained Optimization
+## Obtaining the Singular Value Decomposition (SVD) via Constrained Optimization
 
-### 3.1 Obtaining the First Singular Value
+### Obtaining the First Singular Value
 
-### 3.2 Obtaining Subsequent Singular Values
+### Obtaining Subsequent Singular Values
 
-## 4 Obtaining the Pseudoinverse via the SVD
+## Obtaining the Pseudoinverse via the SVD
 
-### 4.1 Derivation
+### Derivation
 
-### 4.2 Validity Checks
+### Validity Checks
 
 * Exact solution existence
 * Solution uniqueness
 * Numerical conditioning
 * Model validity
 
-## 5 Summary
+## Summary

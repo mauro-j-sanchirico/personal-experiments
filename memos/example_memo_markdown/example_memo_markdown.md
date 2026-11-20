@@ -12,10 +12,10 @@
 <br>
 <br>
 
-## 1. Introduction
+## Introduction
 
 Introduction text.
 
-### 1.1 Example
+### Example
 
 For example, the mean of two values is $\bar{x} = (x_1 + x_2) / 2$.
