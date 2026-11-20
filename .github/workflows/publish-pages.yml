@@ -59,9 +59,9 @@ jobs:
         run: |
           bash memos/make-pdfs.sh
 
-          while IFS= read -r markdown; do
-            [[ -z "$markdown" ]] && continue
-            pdf="${markdown%.md}.pdf"
+          while IFS= read -r source; do
+            [[ -z "$source" ]] && continue
+            pdf="${source%.*}.pdf"
             destination="_site/memos/$pdf"
             mkdir -p "$(dirname "$destination")"
             cp "memos/$pdf" "$destination"

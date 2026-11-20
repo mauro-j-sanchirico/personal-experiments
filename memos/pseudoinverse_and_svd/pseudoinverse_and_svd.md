@@ -1,13 +1,16 @@
 # Building Intuition for Pseudoinverses and Singular Value Decomposition via Optimization
 
-**Author:** Mauro J. Sanchirico III
-**Published:** 2026-11-20
+**Authors:** Mauro J. Sanchirico III
+**Published:** November 20, 2026
 
 ---
 
-**Abstract**: This note builds intuition for pseudoinverses and singular value decomposition (SVD) through the lense of optimization problems. The pseudoinverse is derived intuitively as the solution to a least-squares regression problem, and the SVD is derived in a similar fashion as the solution to a constrained minimization problem.
+**Abstract**: This note builds intuition for pseudoinverses and singular value decomposition (SVD) through the lense of optimization problems. The pseudoinverse is derived intuitively as a least-squares regression solution, and the SVD is derived in a similar fashion as the solution to a constrained minimization problem.
 
 ---
+
+<br>
+<br>
 
 ## 1 Warmup Exercises
 

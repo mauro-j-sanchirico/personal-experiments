@@ -4,10 +4,12 @@ Personal monorepo for experiments, research, and prototyping.
 
 ## Memos
 
+A number of memos on topics of interest are available:
+
 - [Hamming's Proof of Noise Growth Under Application of the Discrete Derivative](https://mauro-j-sanchirico.github.io/personal-experiments/memos/discrete_derivatives/discrete_derivatives.ipynb.pdf)
 - [Building Intuition for the Pseudoinverse and SVD via Optimization](https://mauro-j-sanchirico.github.io/personal-experiments/memos/pseudoinverse_and_svd/pseudoinverse_and_svd.pdf)
-- [Example Markdown memo](https://mauro-j-sanchirico.github.io/personal-experiments/memos/example_memo_markdown/example_memo_markdown.pdf)
-- [Example notebook memo](https://mauro-j-sanchirico.github.io/personal-experiments/memos/example_memo_notebook/example_memo_notebook.ipynb.pdf)
+- [Example Markdown](https://mauro-j-sanchirico.github.io/personal-experiments/memos/example_memo_markdown/example_memo_markdown.pdf)
+- [Example notebook](https://mauro-j-sanchirico.github.io/personal-experiments/memos/example_memo_notebook/example_memo_notebook.ipynb.pdf)
 
 ## Python Project Configurations
 

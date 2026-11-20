@@ -1,11 +1,20 @@
-# Example Memo
+# Example Markdown Memo
 
-**Author:** Mauro J. Sanchirico III  
-**Published:** 2026-01-01
+**Authors:** Mauro J. Sanchirico III
+**Published:** January 1, 2026
+
+---
+
+**Abstract**: Abstract text.
+
+---
+
+<br>
+<br>
 
 ## 1. Introduction
 
-State the purpose of the memo here.
+Introduction text.
 
 ### 1.1 Example
 
