@@ -1,2 +1,5 @@
 pdfs:
-  - tma_derivations/tma_derivations.md
+  - discrete_derivatives/discrete_derivatives.ipynb
+  - pseudoinverse_and_svd/pseudoinverse_and_svd.md
+  - example_memo_markdown/example_memo_markdown.md
+  - example_memo_notebook/example_memo_notebook.ipynb

@@ -2,6 +2,13 @@
 
 Personal monorepo for experiments, research, and prototyping.
 
+## Memos
+
+- [Hamming's Proof of Noise Growth Under Application of the Discrete Derivative](https://mauro-j-sanchirico.github.io/personal-experiments/memos/discrete_derivatives/discrete_derivatives.ipynb.pdf)
+- [Building Intuition for the Pseudoinverse and SVD via Optimization](https://mauro-j-sanchirico.github.io/personal-experiments/memos/pseudoinverse_and_svd/pseudoinverse_and_svd.pdf)
+- [Example Markdown memo](https://mauro-j-sanchirico.github.io/personal-experiments/memos/example_memo_markdown/example_memo_markdown.pdf)
+- [Example notebook memo](https://mauro-j-sanchirico.github.io/personal-experiments/memos/example_memo_notebook/example_memo_notebook.ipynb.pdf)
+
 ## Python Project Configurations
 
 The root `pyproject.toml` defines the `personal-experiments` project and its dependencies for general work and notebooks. Its `[tool.uv.workspace]` section explicitly lists projects under `pyprojects`; currently, only `pyprojects/phdcalc` is listed. Adding a sibling directory alone does not register it as a workspace member.
