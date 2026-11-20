@@ -26,7 +26,8 @@ while IFS= read -r source; do
         --pdf-engine=xelatex \
         --lua-filter=pandoc-title.lua \
         --lua-filter=pandoc-abstract.lua \
-        --include-in-header=pandoc-header.tex \
+        --lua-filter=pandoc-copyright.lua \
+        --lua-filter=pandoc-header.lua \
         --number-sections \
         --toc \
         --toc-depth=2 \

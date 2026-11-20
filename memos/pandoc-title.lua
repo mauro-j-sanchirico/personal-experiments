@@ -11,7 +11,7 @@ local function read_metadata(block, meta)
     elseif not key then
       if inline.t ~= "Strong" then return false end
       local label = pandoc.utils.stringify(inline.content)
-      key = ({ ["Authors:"] = "author", ["Published:"] = "date" })[label]
+      key = ({ ["Authors:"] = "author", ["Published:"] = "date", ["Copyright Year:"] = "copyright-year", ["Copyright Name:"] = "copyright-name" })[label]
       if not key then return false end
       values[key] = pandoc.List()
     elseif #values[key] > 0 or inline.t ~= "Space" then

@@ -2,6 +2,8 @@
 
 **Authors:** Mauro J. Sanchirico III
 **Published:** January 1, 2026
+**Copyright Year:** 2026
+**Copyright Name:** Mauro J. Sanchirico III
 
 ---
 
