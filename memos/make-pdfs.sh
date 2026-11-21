@@ -1,15 +1,44 @@
 #!/usr/bin/env bash
+# Build all PDFs: ./make-pdfs.sh
+# Build selected folders: ./make-pdfs.sh example_memo_markdown example_memo_notebook
 
 set -euo pipefail
 
 repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repository_root"
 
+mapfile -t sources < <(sed -n '/^pdfs:/,$ { /^[[:space:]]*-[[:space:]]*/ { s///; p; } }' pdfs.yaml)
+
+for folder in "$@"; do
+    found=false
+    for source in "${sources[@]}"; do
+        if [[ "$(dirname "$source")" == "$folder" ]]; then
+            found=true
+            break
+        fi
+    done
+    if [[ "$found" == false ]]; then
+        echo "No PDF source found for folder: $folder" >&2
+        exit 1
+    fi
+done
+
 media_directory="$(mktemp -d)"
 trap 'rm -rf -- "$media_directory"' EXIT
 
-while IFS= read -r source; do
+for source in "${sources[@]}"; do
     [[ -z "$source" ]] && continue
+
+    if (( $# > 0 )); then
+        selected=false
+        for folder in "$@"; do
+            if [[ "$(dirname "$source")" == "$folder" ]]; then
+                selected=true
+                break
+            fi
+        done
+        [[ "$selected" == true ]] || continue
+    fi
 
     case "$source" in
         *.md) format=gfm ;;
@@ -32,6 +61,6 @@ while IFS= read -r source; do
         --toc \
         --toc-depth=2 \
         -V geometry:margin=1in
-done < <(sed -n '/^pdfs:/,$ { /^[[:space:]]*-[[:space:]]*/ { s///; p; } }' pdfs.yaml)
+done
 
 echo "PDF generation complete."
