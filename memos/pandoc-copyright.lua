@@ -15,7 +15,7 @@ function Meta(meta)
   local footer = [[
 \usepackage{fancyhdr}
 \fancyhf{}
-\fancyfoot[C]{{\small \copyright{} ]] .. year .. " " .. name .. [[}\\[3pt]\thepage}
+\fancyfoot[C]{{\footnotesize \copyright{} ]] .. year .. " " .. name .. [[}\\[3pt]\thepage}
 \renewcommand{\headrulewidth}{0pt}
 \pagestyle{fancy}
 \fancypagestyle{plain}{\pagestyle{fancy}}

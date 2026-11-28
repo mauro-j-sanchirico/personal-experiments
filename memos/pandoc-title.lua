@@ -33,6 +33,22 @@ local function remove_metadata(blocks, meta)
 end
 
 function Pandoc(doc)
+  local source = PANDOC_STATE.input_files[1]
+  if source and source:match("%.ipynb$") then
+    local file = assert(io.open(source, "r"))
+    local notebook = pandoc.json.decode(file:read("*a"))
+    file:close()
+    local first_cell = notebook.cells[1]
+    if first_cell and first_cell.cell_type == "markdown" then
+      local content = first_cell.source
+      if type(content) == "table" then content = table.concat(content) end
+      local metadata = pandoc.read(content, "markdown").meta
+      for key, value in pairs(metadata) do
+        doc.meta[key] = value
+      end
+    end
+  end
+
   if #doc.blocks == 0 then
     return doc
   end

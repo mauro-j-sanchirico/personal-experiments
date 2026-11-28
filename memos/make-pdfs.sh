@@ -59,6 +59,8 @@ for source in "${sources[@]}"; do
         --lua-filter=pandoc-header.lua \
         --metadata=autoEqnLabels:true \
         --filter=pandoc-crossref \
+        --csl=ieee.csl \
+        --citeproc \
         --number-sections \
         --toc \
         --toc-depth=2 \

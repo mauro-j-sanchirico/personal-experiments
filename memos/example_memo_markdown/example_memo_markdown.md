@@ -1,3 +1,7 @@
+---
+bibliography: references.bib
+---
+
 # Example Markdown Memo
 
 **Authors:** Mauro J. Sanchirico III
@@ -16,10 +20,23 @@
 
 ## Introduction
 
-Introduction text.
+Introduction text. For a reference on mathematical functions, see @abramowitz1964.
 
 ### Example
 
 The mean of two values is given by @eq:mean.
 
-$$\bar{x} = \frac{x_1 + x_2}{2}$$ {#eq:mean}
+$$
+\bar{x} = \frac{x_1 + x_2}{2}
+$$ {#eq:mean}
+
+## References
+
+::: {#refs}
+:::
+
+## Appendix
+
+### Example Subsection
+
+Appendix text.
