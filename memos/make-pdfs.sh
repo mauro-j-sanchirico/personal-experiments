@@ -42,7 +42,7 @@ for source in "${sources[@]}"; do
 
     case "$source" in
         *.md) format=markdown ;;
-        *.ipynb) format=ipynb+citations ;;
+        *.ipynb) format=ipynb+citations+fenced_divs ;;
         *) echo "Unsupported input format: $source" >&2; exit 1 ;;
     esac
 

@@ -39,19 +39,21 @@ function Pandoc(doc)
     local notebook = pandoc.json.decode(file:read("*a"))
     file:close()
     local first_cell = notebook.cells[1]
+    local first_cell_blocks
     if first_cell and first_cell.cell_type == "markdown" then
       local content = first_cell.source
       if type(content) == "table" then content = table.concat(content) end
-      local metadata = pandoc.read(content, "markdown").meta
-      for key, value in pairs(metadata) do
+      local parsed = pandoc.read(content, "markdown")
+      for key, value in pairs(parsed.meta) do
         doc.meta[key] = value
       end
+      first_cell_blocks = parsed.blocks
     end
 
     local blocks = pandoc.List()
-    for _, block in ipairs(doc.blocks) do
+    for index, block in ipairs(doc.blocks) do
       if block.t == "Div" and block.classes:includes("markdown") then
-        blocks:extend(block.content)
+        blocks:extend(index == 1 and first_cell_blocks or block.content)
       else
         blocks:insert(block)
       end
