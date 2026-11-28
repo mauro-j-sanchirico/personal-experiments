@@ -4,7 +4,7 @@ Personal monorepo for experiments, research, and prototyping.
 
 ## Memos
 
-A number of memos on topics of interest are available:
+A number of memos and technical notes on topics of interest are hosted here.
 
 - [Hamming's Proof of Noise Growth Under Application of the Discrete Derivative](https://mauro-j-sanchirico.github.io/personal-experiments/memos/discrete_derivatives/discrete_derivatives.pdf)
 - [Building Intuition for the Pseudoinverse and SVD via Optimization](https://mauro-j-sanchirico.github.io/personal-experiments/memos/pseudoinverse_and_svd/pseudoinverse_and_svd.pdf)
@@ -158,4 +158,29 @@ Here, replace `example-project` with the new package's `[project].name`. Keep th
 
 ### Writing Technical Notes in the `memos` Area
 
-TODO
+The `memos` area of this repository is intended to hold technical notes and educational references on various topics of interest. Follow the steps below to add technical notes to the `memos` area.
+
+1. Create a directory under `memos` for the note, and add a Markdown file or Jupyter notebook. Use the [Markdown example](memos/example_memo_markdown/example_memo_markdown.md) or [notebook example](memos/example_memo_notebook/example_memo_notebook.ipynb) as a starting point.
+2. Add the source path relative to `memos` under `pdfs:` in [pdfs.yaml](memos/pdfs.yaml), for example `- my_memo/my_memo.md`.
+3. Build the PDF from the repository root with `bash memos/make-pdfs.sh my_memo`. Omit the directory name to build all registered memos. Add a link to the published PDF in the Memos list above if it should be listed there.
+
+Start the source with a `# Title`, followed by the bold `Authors:`, `Published:`, `Copyright Year:`, and `Copyright Name:` fields shown in the examples. Write the abstract as `**Abstract**: ...`. In a notebook, put the title, fields, and bibliography metadata in the first Markdown cell; use additional Markdown and code cells for the body. Save the notebook with the outputs you want in the PDF.
+
+Use `##` for sections and `###` for subsections. The PDF builder promotes these headings to numbered sections and subsections and generates a table of contents. Use `## References` and, optionally, `## Appendix` for the special unnumbered headings shown in the examples.
+
+Label a displayed equation and refer to it by its label:
+
+```markdown
+The mean is given by @eq:mean.
+
+$$
+\bar{x} = \frac{x_1 + x_2}{2}
+$$ {#eq:mean}
+```
+
+For references, place a `references.bib` BibTeX file in the memo directory and declare it in a YAML metadata block (`---`, `bibliography: references.bib`, `---`). In Markdown, put this block at the beginning of the file; in a notebook, follow the placement in the first cell of the example. Cite an entry by its BibTeX key, such as `@abramowitz1964`, and place the following under `## References` where the bibliography should appear:
+
+```markdown
+::: {#refs}
+:::
+```

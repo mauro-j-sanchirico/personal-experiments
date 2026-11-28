@@ -53,13 +53,13 @@ for source in "${sources[@]}"; do
         --extract-media="$media_directory" \
         -o "${source%.*}.pdf" \
         --pdf-engine=xelatex \
-        --lua-filter=pandoc-title.lua \
-        --lua-filter=pandoc-abstract.lua \
-        --lua-filter=pandoc-copyright.lua \
-        --lua-filter=pandoc-header.lua \
+        --lua-filter=pdf_builder/pandoc-title.lua \
+        --lua-filter=pdf_builder/pandoc-abstract.lua \
+        --lua-filter=pdf_builder/pandoc-copyright.lua \
+        --lua-filter=pdf_builder/pandoc-header.lua \
         --metadata=autoEqnLabels:true \
         --filter=pandoc-crossref \
-        --csl=ieee.csl \
+        --csl=pdf_builder/ieee.csl \
         --citeproc \
         --number-sections \
         --toc \
