@@ -23,6 +23,28 @@ Workspace commands use the root `uv.lock` and, by default, the root `.venv`, inc
 
 Install `uv` and use Python 3.13 or later, as required by the current projects. Run the following commands from the repository root.
 
+### Memo Publication Dependencies
+
+The memos area in this repository is a common location for technical memos and notes, which can be built as PDFs in a common format from either markdowns or notebooks.
+
+Generating memo PDFs requires Bash, standard Unix utilities (`sed`, `mktemp`, and `rm`), [Pandoc](https://pandoc.org/installing.html) for converting notebooks and markdown documents to a common PDF format, and a LaTeX distribution with XeLaTeX, the `etoolbox` package, and Latin Modern fonts. On Windows, Git Bash provides Bash and the Unix utilities. Install a LaTeX distribution such as [TeX Live](https://tug.org/texlive/).
+
+[pandoc-crossref](https://github.com/lierdakil/pandoc-crossref) is required for equation numbering and cross-referencing. Download the archive for the required platform from its [releases page](https://github.com/lierdakil/pandoc-crossref/releases), extract it, and put the `pandoc-crossref` executable in a directory on your `PATH`.
+
+On Windows, the release archive is a `.7z` file. Extract it with a tool such as [7-Zip](https://www.7-zip.org/). Per the release note, choose a release built against the same Pandoc version you have installed. For example, pandoc-crossref release `v0.3.26a` was built against Pandoc `3.13`.
+
+Open a new terminal and check the installed versions and XeLaTeX:
+
+```bash
+pandoc --version
+pandoc-crossref --version
+xelatex --version
+```
+
+To build the existing memos locally, run `bash memos/make-pdfs.sh` from the repository root.
+
+The GitHub Pages workflow installs `pandoc`, `pandoc-crossref`, `texlive-xetex`, `texlive-latex-extra`, and `fonts-lmodern` on Ubuntu to build the PDFs remotely.
+
 ### Creating the Root Virtual Environment
 
 ```bash
@@ -131,3 +153,9 @@ uv sync --package example-project
 ```
 
 Here, replace `example-project` with the new package's `[project].name`. Keep the shared root lockfile updated when any member's dependencies change.
+
+## Usage
+
+### Writing Technical Notes in the `memos` Area
+
+TODO

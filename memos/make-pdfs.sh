@@ -41,8 +41,8 @@ for source in "${sources[@]}"; do
     fi
 
     case "$source" in
-        *.md) format=gfm ;;
-        *.ipynb) format=ipynb ;;
+        *.md) format=markdown ;;
+        *.ipynb) format=ipynb+citations ;;
         *) echo "Unsupported input format: $source" >&2; exit 1 ;;
     esac
 
@@ -57,6 +57,8 @@ for source in "${sources[@]}"; do
         --lua-filter=pandoc-abstract.lua \
         --lua-filter=pandoc-copyright.lua \
         --lua-filter=pandoc-header.lua \
+        --metadata=autoEqnLabels:true \
+        --filter=pandoc-crossref \
         --number-sections \
         --toc \
         --toc-depth=2 \

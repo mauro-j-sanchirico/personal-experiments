@@ -20,4 +20,6 @@ Introduction text.
 
 ### Example
 
-For example, the mean of two values is $\bar{x} = (x_1 + x_2) / 2$.
+The mean of two values is given by @eq:mean.
+
+$$\bar{x} = \frac{x_1 + x_2}{2}$$ {#eq:mean}
