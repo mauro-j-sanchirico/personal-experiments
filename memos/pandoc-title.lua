@@ -47,6 +47,16 @@ function Pandoc(doc)
         doc.meta[key] = value
       end
     end
+
+    local blocks = pandoc.List()
+    for _, block in ipairs(doc.blocks) do
+      if block.t == "Div" and block.classes:includes("markdown") then
+        blocks:extend(block.content)
+      else
+        blocks:insert(block)
+      end
+    end
+    doc.blocks = blocks
   end
 
   if #doc.blocks == 0 then
